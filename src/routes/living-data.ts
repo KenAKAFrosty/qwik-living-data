@@ -1,38 +1,64 @@
 import { useSignal, type QRL, useVisibleTask$ } from "@builder.io/qwik";
 import { server$ } from "@builder.io/qwik-city";
 
-export const livingData = (func: QRL) => {
-  dataFeeder(func).then((result) => result.next());
+export const livingData = <Q extends QRL>(options: {
+  func: Q;
+  interval?: number;
+}) => {
+  dataFeeder({
+    otherFunc: options.func,
+  }).then((result) => result.next());
   //Oddly, this is enough to give the timing it needs to load up the proper QRL
+  //Also note this pattern might be a bug workaround and may not be necessary forever
 
   const useLivingData = function () {
-    const signal = useSignal("wee");
+    const signal = useSignal<Awaited<ReturnType<Q>>>();
 
     useVisibleTask$(() => {
-      dataFeeder().then(async (stream) => {
-        for await (const message of stream) {
-          signal.value = message;
+      async function connectAndListen() {
+        const stream = await dataFeeder();
+        try {
+          for await (const message of stream) {
+            signal.value = message as Awaited<ReturnType<Q>>;
+          }
+          setTimeout(connectAndListen, 500);
+        } catch (e) {
+          console.log("Living data connection lost:", e);
+          console.log("Retrying");
+          setTimeout(connectAndListen, 500);
         }
-      });
+      }
+      connectAndListen();
     });
 
     return signal;
   };
+
   return useLivingData;
 };
 
 let targetFunc: QRL | undefined = undefined;
-export const dataFeeder = server$(async function* (otherFunc?: QRL) {
+export const dataFeeder = server$(async function* (options?: {
+  otherFunc?: QRL;
+  interval?: number;
+}) {
   if (!targetFunc) {
-    targetFunc = otherFunc;
+    targetFunc = options?.otherFunc;
   } else {
+    let lastInvoked = Date.now();
     yield await targetFunc();
-    await pause(5000);
-    yield await targetFunc();
+
+    const interval = options?.interval || 5000;
+    while (true) {
+      if (Date.now() - lastInvoked >= interval) {
+        yield await targetFunc();
+        lastInvoked = Date.now();
+      }
+      await pause(40);
+    }
   }
 });
 
-
-export function pause(ms: number) { 
-    return new Promise((resolve) => setTimeout(resolve, ms));
+export function pause(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }

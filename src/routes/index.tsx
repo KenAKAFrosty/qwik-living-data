@@ -7,12 +7,12 @@ import Infobox from "~/components/starter/infobox/infobox";
 import Starter from "~/components/starter/next-steps/next-steps";
 import { livingData } from "./living-data";
 
-export const useLivingData = livingData(
-  $(async () => {
+export const useLivingData = livingData({
+  func: $(async () => {
     const rand = Math.random();
-    return ("Juicy data!" + rand);
-  })
-);
+    return `Juicy data! ${rand}` as const;
+  }),
+});
 
 export default component$(() => {
   const data = useLivingData();
