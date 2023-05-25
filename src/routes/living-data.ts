@@ -2,11 +2,11 @@ import { useSignal, type QRL, useVisibleTask$ } from "@builder.io/qwik";
 import { server$ } from "@builder.io/qwik-city";
 
 export const livingData = <Q extends QRL>(options: {
-  func: Q;
+  qrl: Q;
   interval?: number;
 }) => {
   dataFeeder({
-    otherFunc: options.func,
+    qrl: options.qrl,
   }).then((result) => result.next());
   //Oddly, this is enough to give the timing it needs to load up the proper QRL
   //Also note this pattern might be a bug workaround and may not be necessary forever
@@ -37,21 +37,21 @@ export const livingData = <Q extends QRL>(options: {
   return useLivingData;
 };
 
-let targetFunc: QRL | undefined = undefined;
+let targetQRL: QRL | undefined = undefined;
 export const dataFeeder = server$(async function* (options?: {
-  otherFunc?: QRL;
+  qrl?: QRL;
   interval?: number;
 }) {
-  if (!targetFunc) {
-    targetFunc = options?.otherFunc;
+  if (!targetQRL) {
+    targetQRL = options?.qrl;
   } else {
     let lastInvoked = Date.now();
-    yield await targetFunc();
+    yield await targetQRL();
 
     const interval = options?.interval || 5000;
     while (true) {
       if (Date.now() - lastInvoked >= interval) {
-        yield await targetFunc();
+        yield await targetQRL();
         lastInvoked = Date.now();
       }
       await pause(40);

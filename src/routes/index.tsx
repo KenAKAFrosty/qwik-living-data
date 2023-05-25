@@ -7,8 +7,7 @@ import Infobox from "~/components/starter/infobox/infobox";
 import Starter from "~/components/starter/next-steps/next-steps";
 import { livingData } from "./living-data";
 
-export const useLivingData = livingData({
-  func: $(async () => {
+export const useLivingData = livingData({qrl: $(async () => {
     const rand = Math.random();
     return `Juicy data! ${rand}` as const;
   }),
