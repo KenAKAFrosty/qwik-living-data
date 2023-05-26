@@ -16,37 +16,11 @@ export const useLivingData = livingData({
 });
 
 export default component$(() => {
-    const data = useLivingData();
 
     return (
         <>
-            {data.signal.value}
-            <button
-                onClick$={() => {
-                    console.log("clicked");
-                    data.disconnect();
-                }}
-            >
-                disconnect
-            </button>
-
-            <button onClick$={() => {
-                console.log('pausing');
-                data.pause();
-            }}>
-                pause
-            </button>
-
-            <button onClick$={() => {
-                console.log('resuming');
-                data.resume();
-            }}>
-                resume
-            </button>
-
-            <button onClick$={() => {
-                data.refresh();
-            }}>REFRESH</button>
+            <JuicyData />
+            <JuicyData />
             <Hero />
             <Starter />
 
@@ -138,6 +112,42 @@ export default component$(() => {
         </>
     );
 });
+
+export const JuicyData = component$(() => {
+    const data = useLivingData();
+
+    return <section>
+        {data.signal.value}
+        <button
+            onClick$={() => {
+                console.log("clicked");
+                data.disconnect();
+            }}
+        >
+            disconnect
+        </button>
+
+        <button onClick$={() => {
+            console.log('pausing');
+            data.pause();
+        }}>
+            pause
+        </button>
+
+        <button onClick$={() => {
+            console.log('resuming');
+            data.resume();
+        }}>
+            resume
+        </button>
+
+        <button onClick$={() => {
+            data.refresh();
+        }}>REFRESH</button>
+    </section>
+})
+
+
 
 export const head: DocumentHead = {
     title: "Welcome to Qwik",
