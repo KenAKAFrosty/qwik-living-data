@@ -10,7 +10,7 @@ import { server$ } from "@builder.io/qwik-city";
 const argsById = new Map<number, any[]>();
 const targetQrlById = new Map<number, QRL>();
 const refreshRequestById = new Set<number>();
-const stopRequestById = new Set<number>();
+const disconnectRequestById = new Set<number>();
 const pauseRequestById = new Set<number>();
 
 export const livingData = <Q extends QRL>(options: {
@@ -21,22 +21,17 @@ export const livingData = <Q extends QRL>(options: {
     const id = Math.random();
     targetQrlById.set(id, options.qrl);
 
-    dataFeeder().then((result) => result.next());
-    //Oddly, this is enough to give the timing it needs to load up the proper QRL
-    //Also note this pattern might be a bug workaround and may not be necessary forever
-
+    type ThisReturnValue = {
+        signal: Signal<undefined | Awaited<ReturnType<Q>>>;
+        disconnect: ReturnType<typeof server$>;
+        refresh: ReturnType<typeof server$>;
+        pause: ReturnType<typeof server$>;
+        resume: ReturnType<typeof server$>;
+    }
 
     type UseLivingData = Parameters<Q> extends []
-        ? () => {
-            signal: Signal<undefined | Awaited<ReturnType<Q>>>;
-            stop: ReturnType<typeof server$>;
-            refresh: ReturnType<typeof server$>;
-        }
-        : (...args: Parameters<Q>) => {
-            signal: Signal<undefined | Awaited<ReturnType<Q>>>;
-            stop: ReturnType<typeof server$>;
-            refresh: ReturnType<typeof server$>;
-        };
+        ? () => ThisReturnValue
+        : (...args: Parameters<Q>) => ThisReturnValue;
 
     const useLivingData: UseLivingData = function (...args: Parameters<Q>) {
         argsById.set(id, args);
@@ -46,11 +41,21 @@ export const livingData = <Q extends QRL>(options: {
 
         const stopListening = useSignal(false);
 
-        const stop = $(async () => {
-            console.log("stopping");
+        const disconnect = $(async () => {
+            console.log("Disconnecting");
             stopListening.value = true;
             await stopDataFeeder(id);
         });
+
+        const pause = $(async () => {
+            stopListening.value = true;
+            await pauseDataFeeder(id);
+        });
+
+        const resume = $(async () => {
+            stopListening.value = false;
+            await resumeDataFeed(id);
+        })
 
         const refresh = $(async () => {
             await refreshDataFeeder(id);
@@ -74,22 +79,29 @@ export const livingData = <Q extends QRL>(options: {
                     console.log("Retrying");
                     setTimeout(connectAndListen, 500);
                 }
-                cleanup(() => {
-                    stopListening.value = true;
-                    stopDataFeeder(id);
-                });
+                cleanup(() => disconnect());
             }
             connectAndListen();
         });
 
-        return { signal, stop, refresh };
+        return { signal, disconnect, refresh, pause, resume };
     };
 
     return useLivingData;
 };
 
+export const pauseDataFeeder = server$(async function (id: number) {
+    pauseRequestById.add(id);
+    return true;
+});
+
+export const resumeDataFeed = server$(async function (id: number) {
+    pauseRequestById.delete(id);
+    return true;
+})
+
 export const stopDataFeeder = server$(async function (id: number) {
-    stopRequestById.add(id);
+    disconnectRequestById.add(id);
     return true;
 });
 
@@ -98,41 +110,36 @@ export const refreshDataFeeder = server$(async function (id: number) {
     return true;
 });
 
-export const dataFeeder = server$(async function* (options?: {
+export const dataFeeder = server$(async function* (options: {
     id: number;
     interval?: number;
 }) {
-    if (!options) {
-        return; //this is part of that weird quirk to get the proper QRL 'loaded in'
-    }
-
     const func = targetQrlById.get(options.id)!;
-    stopRequestById.delete(options.id);
+    disconnectRequestById.delete(options.id);
 
-    let lastInvoked = Date.now();
     yield await func(...(argsById.get(options.id) || []));
+    let lastCompleted = Date.now();
 
     const interval = options?.interval || 5000;
 
-    while (stopRequestById.has(options.id) === false) {
+    while (disconnectRequestById.has(options.id) === false) {
+        if (refreshRequestById.has(options.id)) {
+            console.log("firing");
+            yield await func(...(argsById.get(options.id) || []));
+            refreshRequestById.delete(options.id);
+            lastCompleted = Date.now();
+        }
+
         if (pauseRequestById.has(options.id)) {
             await pause(40);
             continue;
         }
 
-        if (refreshRequestById.has(options.id)) {
+        if (Date.now() - lastCompleted >= interval) {
             console.log("firing");
             yield await func(...(argsById.get(options.id) || []));
-            refreshRequestById.delete(options.id);
-            lastInvoked = Date.now();
+            lastCompleted = Date.now();
         }
-
-        if (Date.now() - lastInvoked >= interval) {
-            console.log("firing");
-            yield await func(...(argsById.get(options.id) || []));
-            lastInvoked = Date.now();
-        }
-
         await pause(40);
     }
 });
