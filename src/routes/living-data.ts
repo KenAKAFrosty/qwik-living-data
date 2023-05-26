@@ -30,18 +30,18 @@ export const livingData = <Q extends QRL>(options: {
     type UseLivingData = Parameters<Q> extends []
         ? () => {
             signal: Signal<undefined | Awaited<ReturnType<Q>>>;
-            disconnectAll: ReturnType<typeof server$>;
-            refresh: QRL<(...args: Parameters<Q>) => void>
+            disconnect: ReturnType<typeof server$>;
+            newArguments: QRL<(...args: Parameters<Q>) => void>
         }
         : (...args: Parameters<Q>) => {
             signal: Signal<undefined | Awaited<ReturnType<Q>>>;
-            disconnectAll: ReturnType<typeof server$>;
-            refresh: QRL<(...args: Parameters<Q>) => void>
+            disconnect: ReturnType<typeof server$>;
+            newArguments: QRL<(...args: Parameters<Q>) => void>
         };
 
     const useLivingData: UseLivingData = function (...args: Parameters<Q>) {
-        const theseArgs = args;
-        const signal = useSignal<undefined | Awaited<ReturnType<Q>>>(options.startingValue);
+        const dataSignal = useSignal<undefined | Awaited<ReturnType<Q>>>(options.startingValue);
+        const currentArgs = useSignal<Parameters<Q>>(args);
         const currentConnection = useSignal<number>(-1);
         const connections = useSignal<number[]>([]);
 
@@ -62,23 +62,22 @@ export const livingData = <Q extends QRL>(options: {
                     await disconnectConnectionInstances([thisConnectionId]);
                     break;
                 }
-                signal.value = current.value as Awaited<ReturnType<Q>>;
+                dataSignal.value = current.value as Awaited<ReturnType<Q>>;
             }
             connections.value = connections.value.filter((id) => id !== thisConnectionId);
         });
 
 
-        const disconnectAll = $(async () => {
-            
+        const disconnect = $(async () => {
+            await disconnectConnectionInstances(connections.value);
         });
 
-        const refresh = $(async (...args: Parameters<Q>) => {
+        const newArguments = $(async (...args: Parameters<Q>) => {
             await connectAndListen(...args);
         });
 
         useVisibleTask$(({ cleanup }) => {
-
-            cleanup(() => disconnectAll());
+            cleanup(() => disconnect());
             async function stayConnected(...args: Parameters<Q>) {
                 try {
                     await connectAndListen(...args);
@@ -88,10 +87,10 @@ export const livingData = <Q extends QRL>(options: {
                     setTimeout(stayConnected, 500);
                 }
             }
-            stayConnected(...theseArgs);
+            stayConnected(...currentArgs.value);
         });
 
-        return { signal, disconnectAll, refresh };
+        return { signal: dataSignal, disconnect, newArguments };
     };
 
     return useLivingData;

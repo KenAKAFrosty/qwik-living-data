@@ -138,7 +138,7 @@ export const JuicyData = component$(() => {
         <button
             onClick$={() => {
                 console.log("clicked");
-                data.disconnectAll();
+                data.disconnect();
             }}
         >
             disconnect
