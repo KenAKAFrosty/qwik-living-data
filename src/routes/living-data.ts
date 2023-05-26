@@ -8,11 +8,7 @@ import {
 import { server$ } from "@builder.io/qwik-city";
 
 const targetQrlById = new Map<string, QRL>();
-
-const argsById = new Map<number, any[]>();
-const refreshRequestById = new Set<number>();
-const disconnectRequestById = new Set<number>();
-const pauseRequestById = new Set<number>();
+const disconnectRequestsById = new Set<number>();
 
 export const livingData = <Q extends QRL>(options: {
     qrl: Q;
@@ -23,146 +19,124 @@ export const livingData = <Q extends QRL>(options: {
     targetQrlById.set(qrlId, options.qrl);
 
 
-    type ReturnValue = {
-        signal: Signal<undefined | Awaited<ReturnType<Q>>>;
-        disconnect: ReturnType<typeof server$>;
-        refresh: ReturnType<typeof server$>;
-        pause: ReturnType<typeof server$>;
-        resume: ReturnType<typeof server$>;
-    }
+    // type ReturnValue = {
+    //     signal: Signal<undefined | Awaited<ReturnType<Q>>>;
+    //     disconnect: ReturnType<typeof server$>;
+    //     refresh: ReturnType<typeof server$>;
+    //     resume: ReturnType<typeof server$>;
+    // }
+    //If we do ReturnValue it makes the consumer swallow the types until they break it down. not very ergo for DX
+    //So we have to repeat here unfortunately
     type UseLivingData = Parameters<Q> extends []
-        ? () => ReturnValue
-        : (...args: Parameters<Q>) => ReturnValue;
+        ? () => {
+            signal: Signal<undefined | Awaited<ReturnType<Q>>>;
+            disconnect: ReturnType<typeof server$>;
+            refresh: ReturnType<typeof server$>;
+            resume: ReturnType<typeof server$>;
+        }
+        : (...args: Parameters<Q>) => {
+            signal: Signal<undefined | Awaited<ReturnType<Q>>>;
+            disconnect: ReturnType<typeof server$>;
+            refresh: ReturnType<typeof server$>;
+            resume: ReturnType<typeof server$>;
+        };
 
     const useLivingData: UseLivingData = function (...args: Parameters<Q>) {
+        console.log(...args);
+        const theseArgs = args;
         const instanceId = Math.random();
-        console.log(instanceId);
-        console.log(targetQrlById)
-        argsById.set(instanceId, args);
-        const signal = useSignal<undefined | Awaited<ReturnType<Q>>>(
-            options.startingValue
-        );
+        const signal = useSignal<undefined | Awaited<ReturnType<Q>>>(options.startingValue);
 
         const stopListening = useSignal(false);
 
-        const disconnect = $(async () => { //consider renaming this 'kill' or something. maybe abort? Disconnect implies that it can be reconnected
-            //a temporary "disconnect" is just a pause, which CAN be resumed.
-            //Problem with 'kill' or 'abort' is that it kind of implies the data will go away, which isn't true; the last pull of data is still there.
-            //it just won't get fresh data anymore after this, no matter if someone tries to call refresh, etc.
-            console.log("Disconnecting");
-            stopListening.value = true;
-            await stopDataFeeder(instanceId);
+        type ConnectAndListen = Parameters<Q> extends []
+            ? () => Promise<void>
+            : (...args: Parameters<Q>) => Promise<void>;
+
+
+        const connectionsById = new Set<number>();
+        const connectAndListen: ConnectAndListen = $(async (...args: Parameters<Q>) => {
+            const connectionId = Math.random();
+            connectionsById.add(connectionId);
+            const stream = await dataFeeder({ qrlId, instanceId: instanceId, args });
+            while (true) {
+                let current = await stream.next();
+                console.log(current);
+                if (stopListening.value === true || current.done === true) {
+                    break;
+                }
+                signal.value = current.value as Awaited<ReturnType<Q>>;
+            }
+            stopListening.value = false;
+            // for await (const message of stream) {
+            //     console.log(message);
+            //     console.log(await stream.next())
+            //     if (stopListening.value === true) {
+            //         break;
+            //     }
+            //     signal.value = message as Awaited<ReturnType<Q>>;
+            // }
         });
 
-        const pause = $(async () => {
+
+        const disconnect = $(async () => {
             stopListening.value = true;
-            await pauseDataFeeder(instanceId);
+            await disconnectDataFeeder(instanceId);
         });
 
         const resume = $(async () => {
             stopListening.value = false;
-            await resumeDataFeed(instanceId);
+
         })
 
-        const refresh = $(async () => {
-            await refreshDataFeeder(instanceId);
+        const refresh = $(async (...args: Parameters<Q>) => {
+            await connectAndListen(...args);
         });
 
         useVisibleTask$(({ cleanup }) => {
-            async function connectAndListen() {
+
+            cleanup(() => disconnect());
+            async function stayConnected(...args: Parameters<Q>) {
                 try {
-                    const stream = await dataFeeder({ qrlId, instanceId: instanceId });
-                    for await (const message of stream) {
-                        if (stopListening.value === true) {
-                            break;
-                        }
-                        signal.value = message as Awaited<ReturnType<Q>>;
-                    }
-                    if (stopListening.value === false) {
-                        setTimeout(connectAndListen, 500);
-                    }
+                    await connectAndListen(...args);
                 } catch (e) {
                     console.warn("Living data connection lost:", e);
                     console.log("Retrying");
-                    setTimeout(connectAndListen, 500);
+                    setTimeout(stayConnected, 500);
                 }
-                cleanup(() => disconnect());
             }
-            connectAndListen();
+            stayConnected(...theseArgs);
         });
 
-        return { signal, disconnect, refresh, pause, resume };
+        return { signal, disconnect, refresh, resume };
     };
 
     return useLivingData;
 };
 
 
-
-
-
-
-
-
-
-let thisEnvironmentStarted = false;
-
-
-export const pauseDataFeeder = server$(async function (id: number) {
-    console.log('pause', {thisEnvironmentStarted})
-    pauseRequestById.add(id);
-    return true;
-});
-
-export const resumeDataFeed = server$(async function (id: number) {
-    console.log('resume', {thisEnvironmentStarted})
-    pauseRequestById.delete(id);
-    return true;
-})
-
-export const stopDataFeeder = server$(async function (id: number) {
-    console.log('stop', {thisEnvironmentStarted})
-    disconnectRequestById.add(id);
-    return true;
-});
-
-export const refreshDataFeeder = server$(async function (id: number) {
-    console.log('refresh', {thisEnvironmentStarted})
-    refreshRequestById.add(id);
-    return true;
+export const disconnectDataFeeder = server$((instanceId: number) => {
+    disconnectRequestsById.add(instanceId);
 });
 
 export const dataFeeder = server$(async function* (options: {
     qrlId: string;
+    args: any[];
     instanceId: number;
     interval?: number;
 }) {
-    thisEnvironmentStarted = true;
     const func = targetQrlById.get(options.qrlId)!;
+    console.log('x');
+    console.log(options.instanceId, disconnectRequestsById)
+    yield await func(...options.args);
+    disconnectRequestsById.delete(options.instanceId);
 
-    disconnectRequestById.delete(options.instanceId); //rethink the need for this
-    
-    yield await func(...(argsById.get(options.instanceId) || []));
     let lastCompleted = Date.now();
-
-    const interval = options?.interval || 5000;
-
-    while (disconnectRequestById.has(options.instanceId) === false) {
-        if (refreshRequestById.has(options.instanceId)) {
-            console.log("firing");
-            yield await func(...(argsById.get(options.instanceId) || []));
-            refreshRequestById.delete(options.instanceId);
-            lastCompleted = Date.now();
-        }
-
-        if (pauseRequestById.has(options.instanceId)) {
-            await pause(40);
-            continue;
-        }
-
+    const interval = options?.interval || 2500;
+    while (disconnectRequestsById.has(options.instanceId) === false) {
         if (Date.now() - lastCompleted >= interval) {
-            console.log("firing");
-            yield await func(...(argsById.get(options.instanceId) || []));
+            console.log("x");
+            yield await func(...options.args);
             lastCompleted = Date.now();
         }
         await pause(40);

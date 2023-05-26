@@ -1,4 +1,4 @@
-import { component$ } from "@builder.io/qwik";
+import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
 import { type DocumentHead, server$ } from "@builder.io/qwik-city";
 
 import Counter from "~/components/starter/counter/counter";
@@ -8,7 +8,7 @@ import Starter from "~/components/starter/next-steps/next-steps";
 import { livingData } from "./living-data";
 
 export const useLivingData = livingData({
-    qrl: server$(async function (setNumber?: number, setMessage?: string) {
+    qrl: server$(async function (setMessage?: string, setNumber?: number, ) {
         const rand = Math.random();
         return `${setMessage ?? "Juicy data!"} ${setNumber ?? rand}`;
     }),
@@ -17,10 +17,16 @@ export const useLivingData = livingData({
 
 export default component$(() => {
 
+    const show = useSignal(false);
+    useVisibleTask$(()=> { 
+        setTimeout(()=> { 
+            show.value = false;
+        }, 2000)
+    })
     return (
         <>
             <JuicyData />
-            <JuicyData />
+           {show.value &&  <JuicyData />}
             <Hero />
             <Starter />
 
@@ -114,7 +120,7 @@ export default component$(() => {
 });
 
 export const JuicyData = component$(() => {
-    const data = useLivingData();
+    const data = useLivingData("Initial!:");
 
     return <section>
         {data.signal.value}
@@ -128,13 +134,6 @@ export const JuicyData = component$(() => {
         </button>
 
         <button onClick$={() => {
-            console.log('pausing');
-            data.pause();
-        }}>
-            pause
-        </button>
-
-        <button onClick$={() => {
             console.log('resuming');
             data.resume();
         }}>
@@ -142,7 +141,7 @@ export const JuicyData = component$(() => {
         </button>
 
         <button onClick$={() => {
-            data.refresh();
+            data.refresh("Refreshed:");
         }}>REFRESH</button>
     </section>
 })
