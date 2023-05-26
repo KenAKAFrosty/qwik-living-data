@@ -1,4 +1,10 @@
-import { $, useSignal, useVisibleTask$, type QRL, type Signal } from "@builder.io/qwik";
+import {
+  $,
+  useSignal,
+  useVisibleTask$,
+  type QRL,
+  type Signal,
+} from "@builder.io/qwik";
 import { server$ } from "@builder.io/qwik-city";
 
 const shouldStopById = new Map<number, boolean>();
@@ -16,7 +22,7 @@ export const livingData = <Q extends QRL>(options: {
   const id = Math.random();
   targetQrlById.set(id, options.qrl);
 
-  dataFeeder({ qrl: options.qrl }).then((result) => result.next());
+  dataFeeder().then((result) => result.next());
   //Oddly, this is enough to give the timing it needs to load up the proper QRL
   //Also note this pattern might be a bug workaround and may not be necessary forever
 
@@ -81,19 +87,15 @@ export const stopDataFeeder = server$(async function (id: number) {
   return true;
 });
 
-
-export const dataFeeder = server$(async function* (
-  options:
-    | { qrl: QRL; id?: undefined; interval?: undefined }
-    | { qrl?: undefined; id: number; interval?: number }
-) {
-  if (options.qrl) {
-    // targetQRL = options.qrl;
-    return;
+export const dataFeeder = server$(async function* (options?: {
+  id: number;
+  interval?: number;
+}) {
+  if (!options) {
+    return; //this is part of that weird qurik to get the proper QRL 'loaded in'
   }
+
   const func = targetQrlById.get(options.id)!;
-
-
   shouldStopById.set(options.id, false);
 
   let lastInvoked = Date.now();
