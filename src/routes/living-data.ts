@@ -35,10 +35,10 @@ export const livingData = <Q extends QRL>(options: {
         : (...args: Parameters<Q>) => ReturnValue;
 
     const useLivingData: UseLivingData = function (...args: Parameters<Q>) {
-        const instanceId = useSignal(Math.random());
+        const instanceId = Math.random();
         console.log(instanceId);
         console.log(targetQrlById)
-        argsById.set(instanceId.value, args);
+        argsById.set(instanceId, args);
         const signal = useSignal<undefined | Awaited<ReturnType<Q>>>(
             options.startingValue
         );
@@ -51,27 +51,27 @@ export const livingData = <Q extends QRL>(options: {
             //it just won't get fresh data anymore after this, no matter if someone tries to call refresh, etc.
             console.log("Disconnecting");
             stopListening.value = true;
-            await stopDataFeeder(instanceId.value);
+            await stopDataFeeder(instanceId);
         });
 
         const pause = $(async () => {
             stopListening.value = true;
-            await pauseDataFeeder(instanceId.value);
+            await pauseDataFeeder(instanceId);
         });
 
         const resume = $(async () => {
             stopListening.value = false;
-            await resumeDataFeed(instanceId.value);
+            await resumeDataFeed(instanceId);
         })
 
         const refresh = $(async () => {
-            await refreshDataFeeder(instanceId.value);
+            await refreshDataFeeder(instanceId);
         });
 
         useVisibleTask$(({ cleanup }) => {
             async function connectAndListen() {
                 try {
-                    const stream = await dataFeeder({ qrlId, instanceId: instanceId.value });
+                    const stream = await dataFeeder({ qrlId, instanceId: instanceId });
                     for await (const message of stream) {
                         if (stopListening.value === true) {
                             break;
