@@ -7,8 +7,9 @@ import {
 } from "@builder.io/qwik";
 import { server$ } from "@builder.io/qwik-city";
 
+const targetQrlById = new Map<string, QRL>();
+
 const argsById = new Map<number, any[]>();
-const targetQrlById = new Map<number, QRL>();
 const refreshRequestById = new Set<number>();
 const disconnectRequestById = new Set<number>();
 const pauseRequestById = new Set<number>();
@@ -18,23 +19,26 @@ export const livingData = <Q extends QRL>(options: {
     interval?: number;
     startingValue?: Awaited<ReturnType<Q>>;
 }) => {
-    const id = Math.random();
-    targetQrlById.set(id, options.qrl);
+    const qrlId = options.qrl.getSymbol();
+    targetQrlById.set(qrlId, options.qrl);
 
-    type ThisReturnValue = {
+
+    type ReturnValue = {
         signal: Signal<undefined | Awaited<ReturnType<Q>>>;
         disconnect: ReturnType<typeof server$>;
         refresh: ReturnType<typeof server$>;
         pause: ReturnType<typeof server$>;
         resume: ReturnType<typeof server$>;
     }
-
     type UseLivingData = Parameters<Q> extends []
-        ? () => ThisReturnValue
-        : (...args: Parameters<Q>) => ThisReturnValue;
+        ? () => ReturnValue
+        : (...args: Parameters<Q>) => ReturnValue;
 
     const useLivingData: UseLivingData = function (...args: Parameters<Q>) {
-        argsById.set(id, args);
+        const instanceId = Math.random();
+        console.log(instanceId);
+        console.log(targetQrlById)
+        argsById.set(instanceId, args);
         const signal = useSignal<undefined | Awaited<ReturnType<Q>>>(
             options.startingValue
         );
@@ -44,27 +48,27 @@ export const livingData = <Q extends QRL>(options: {
         const disconnect = $(async () => {
             console.log("Disconnecting");
             stopListening.value = true;
-            await stopDataFeeder(id);
+            await stopDataFeeder(instanceId);
         });
 
         const pause = $(async () => {
             stopListening.value = true;
-            await pauseDataFeeder(id);
+            await pauseDataFeeder(instanceId);
         });
 
         const resume = $(async () => {
             stopListening.value = false;
-            await resumeDataFeed(id);
+            await resumeDataFeed(instanceId);
         })
 
         const refresh = $(async () => {
-            await refreshDataFeeder(id);
+            await refreshDataFeeder(instanceId);
         });
 
         useVisibleTask$(({ cleanup }) => {
             async function connectAndListen() {
                 try {
-                    const stream = await dataFeeder({ id });
+                    const stream = await dataFeeder({ qrlId, instanceId });
                     for await (const message of stream) {
                         if (stopListening.value === true) {
                             break;
@@ -111,33 +115,35 @@ export const refreshDataFeeder = server$(async function (id: number) {
 });
 
 export const dataFeeder = server$(async function* (options: {
-    id: number;
+    qrlId: string;
+    instanceId: number;
     interval?: number;
 }) {
-    const func = targetQrlById.get(options.id)!;
-    disconnectRequestById.delete(options.id);
+    const func = targetQrlById.get(options.qrlId)!;
 
-    yield await func(...(argsById.get(options.id) || []));
+    disconnectRequestById.delete(options.instanceId); //rethink the need for this
+    
+    yield await func(...(argsById.get(options.instanceId) || []));
     let lastCompleted = Date.now();
 
     const interval = options?.interval || 5000;
 
-    while (disconnectRequestById.has(options.id) === false) {
-        if (refreshRequestById.has(options.id)) {
+    while (disconnectRequestById.has(options.instanceId) === false) {
+        if (refreshRequestById.has(options.instanceId)) {
             console.log("firing");
-            yield await func(...(argsById.get(options.id) || []));
-            refreshRequestById.delete(options.id);
+            yield await func(...(argsById.get(options.instanceId) || []));
+            refreshRequestById.delete(options.instanceId);
             lastCompleted = Date.now();
         }
 
-        if (pauseRequestById.has(options.id)) {
+        if (pauseRequestById.has(options.instanceId)) {
             await pause(40);
             continue;
         }
 
         if (Date.now() - lastCompleted >= interval) {
             console.log("firing");
-            yield await func(...(argsById.get(options.id) || []));
+            yield await func(...(argsById.get(options.instanceId) || []));
             lastCompleted = Date.now();
         }
         await pause(40);
