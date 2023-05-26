@@ -49,17 +49,17 @@ export const livingData = <Q extends QRL>(options: {
             ? () => Promise<void>
             : (...args: Parameters<Q>) => Promise<void>;
 
-        const connectAndListen: ConnectAndListen = $(async (...args: Parameters<Q>) => {
+        const connectAndListen: ConnectAndListen = $(async () => {
             const thisConnectionId = Math.random();
             currentConnection.value = thisConnectionId;
             await disconnectConnectionInstances(connections.value);
             connections.value = [...connections.value, thisConnectionId];
             console.log(connections.value);
-            const stream = await dataFeeder({ qrlId, connectionId: thisConnectionId, args });
+            const stream = await dataFeeder({ qrlId, connectionId: thisConnectionId, args: currentArgs.value });
+            
             while (true) {
                 const current = await stream.next();
                 if (current.done === true || currentConnection.value !== thisConnectionId) {
-                    await disconnectConnectionInstances([thisConnectionId]);
                     break;
                 }
                 dataSignal.value = current.value as Awaited<ReturnType<Q>>;
@@ -73,21 +73,22 @@ export const livingData = <Q extends QRL>(options: {
         });
 
         const newArguments = $(async (...args: Parameters<Q>) => {
-            await connectAndListen(...args);
+            currentArgs.value = args;
+            await connectAndListen();
         });
 
         useVisibleTask$(({ cleanup }) => {
             cleanup(() => pause());
-            async function stayConnected(...args: Parameters<Q>) {
+            async function stayConnected() {
                 try {
-                    await connectAndListen(...args);
+                    await connectAndListen();
                 } catch (e) {
                     console.warn("Living data connection lost:", e);
                     console.log("Retrying");
                     setTimeout(stayConnected, 500);
                 }
             }
-            stayConnected(...currentArgs.value);
+            stayConnected();
         });
 
         return { signal: dataSignal, pause, newArguments };

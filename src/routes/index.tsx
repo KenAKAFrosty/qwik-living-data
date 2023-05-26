@@ -138,13 +138,13 @@ export const JuicyData = component$(() => {
         <button
             onClick$={() => {
                 console.log("clicked");
-                data.disconnect();
+                data.pause();
             }}
         >
             disconnect
         </button>
         <button onClick$={() => {
-            data.refresh("Refreshed:");
+            data.newArguments("Refreshed:");
         }}>REFRESH</button>
     </section>
 })
