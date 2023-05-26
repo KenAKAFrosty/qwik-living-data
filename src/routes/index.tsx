@@ -10,7 +10,7 @@ import { livingData } from "./living-data";
 export const useLivingData = livingData({
   qrl: server$(async function (setNumber?: number, setMessage?: string) {
     const rand = Math.random();
-    return `${setMessage ?? 'Juicy data!'} ${setNumber ?? rand}`;
+    return `${setMessage ?? "Juicy data!"} ${setNumber ?? rand}`;
   }),
   startingValue: "Loading....",
 });
@@ -23,10 +23,16 @@ export default component$(() => {
       {data.signal.value}
       <button
         onClick$={() => {
-          console.log('clicked');
+          console.log("clicked");
           data.stop();
         }}
-      >stop</button>
+      >
+        stop
+      </button>
+
+      <button onClick$={()=> { 
+        data.refresh();
+      }}>REFRESH</button>
       <Hero />
       <Starter />
 
