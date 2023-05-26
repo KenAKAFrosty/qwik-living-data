@@ -52,18 +52,19 @@ export const livingData = <Q extends QRL>(options: {
         const connectAndListen: ConnectAndListen = $(async (...args: Parameters<Q>) => {
             const thisConnectionId = Math.random();
             currentConnection.value = thisConnectionId;
+            await disconnectConnectionInstances(connections.value);
             connections.value = [...connections.value, thisConnectionId];
+            console.log(connections.value);
             const stream = await dataFeeder({ qrlId, connectionId: thisConnectionId, args });
             while (true) {
-                let current = await stream.next();
-                console.log(current);
-                console.log(currentConnection.value);
+                const current = await stream.next();
                 if (current.done === true || currentConnection.value !== thisConnectionId) {
                     await disconnectConnectionInstances([thisConnectionId]);
                     break;
                 }
                 signal.value = current.value as Awaited<ReturnType<Q>>;
             }
+            connections.value = connections.value.filter((id) => id !== thisConnectionId);
         });
 
 
@@ -109,7 +110,6 @@ export const dataFeeder = server$(async function* (options: {
     interval?: number;
 }) {
     const func = targetQrlById.get(options.qrlId)!;
-    console.log(options.connectionId);
 
     yield await func(...options.args);
 
@@ -119,7 +119,6 @@ export const dataFeeder = server$(async function* (options: {
         disconnectRequestsByConnectionId.has(options.connectionId) === false
     ) {
         if (Date.now() - lastCompleted >= interval) {
-            console.log(options.connectionId);
             yield await func(...options.args);
             lastCompleted = Date.now();
         }
