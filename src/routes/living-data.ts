@@ -35,40 +35,43 @@ export const livingData = <Q extends QRL>(options: {
         : (...args: Parameters<Q>) => ReturnValue;
 
     const useLivingData: UseLivingData = function (...args: Parameters<Q>) {
-        const instanceId = Math.random();
+        const instanceId = useSignal(Math.random());
         console.log(instanceId);
         console.log(targetQrlById)
-        argsById.set(instanceId, args);
+        argsById.set(instanceId.value, args);
         const signal = useSignal<undefined | Awaited<ReturnType<Q>>>(
             options.startingValue
         );
 
         const stopListening = useSignal(false);
 
-        const disconnect = $(async () => {
+        const disconnect = $(async () => { //consider renaming this 'kill' or something. maybe abort? Disconnect implies that it can be reconnected
+            //a temporary "disconnect" is just a pause, which CAN be resumed.
+            //Problem with 'kill' or 'abort' is that it kind of implies the data will go away, which isn't true; the last pull of data is still there.
+            //it just won't get fresh data anymore after this, no matter if someone tries to call refresh, etc.
             console.log("Disconnecting");
             stopListening.value = true;
-            await stopDataFeeder(instanceId);
+            await stopDataFeeder(instanceId.value);
         });
 
         const pause = $(async () => {
             stopListening.value = true;
-            await pauseDataFeeder(instanceId);
+            await pauseDataFeeder(instanceId.value);
         });
 
         const resume = $(async () => {
             stopListening.value = false;
-            await resumeDataFeed(instanceId);
+            await resumeDataFeed(instanceId.value);
         })
 
         const refresh = $(async () => {
-            await refreshDataFeeder(instanceId);
+            await refreshDataFeeder(instanceId.value);
         });
 
         useVisibleTask$(({ cleanup }) => {
             async function connectAndListen() {
                 try {
-                    const stream = await dataFeeder({ qrlId, instanceId });
+                    const stream = await dataFeeder({ qrlId, instanceId: instanceId.value });
                     for await (const message of stream) {
                         if (stopListening.value === true) {
                             break;
@@ -94,22 +97,37 @@ export const livingData = <Q extends QRL>(options: {
     return useLivingData;
 };
 
+
+
+
+
+
+
+
+
+let thisEnvironmentStarted = false;
+
+
 export const pauseDataFeeder = server$(async function (id: number) {
+    console.log('pause', {thisEnvironmentStarted})
     pauseRequestById.add(id);
     return true;
 });
 
 export const resumeDataFeed = server$(async function (id: number) {
+    console.log('resume', {thisEnvironmentStarted})
     pauseRequestById.delete(id);
     return true;
 })
 
 export const stopDataFeeder = server$(async function (id: number) {
+    console.log('stop', {thisEnvironmentStarted})
     disconnectRequestById.add(id);
     return true;
 });
 
 export const refreshDataFeeder = server$(async function (id: number) {
+    console.log('refresh', {thisEnvironmentStarted})
     refreshRequestById.add(id);
     return true;
 });
@@ -119,6 +137,7 @@ export const dataFeeder = server$(async function* (options: {
     instanceId: number;
     interval?: number;
 }) {
+    thisEnvironmentStarted = true;
     const func = targetQrlById.get(options.qrlId)!;
 
     disconnectRequestById.delete(options.instanceId); //rethink the need for this
