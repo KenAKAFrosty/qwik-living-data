@@ -6,7 +6,7 @@ import Hero from "~/components/starter/hero/hero";
 import Infobox from "~/components/starter/infobox/infobox";
 import Starter from "~/components/starter/next-steps/next-steps";
 import { livingData } from "./living-data";
-
+ 
 export const useLivingData = livingData({
   qrl: server$(async function (setNumber?: number, setMessage?: string) {
     const rand = Math.random();
