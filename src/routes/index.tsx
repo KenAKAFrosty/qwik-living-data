@@ -1,5 +1,5 @@
-import { $, component$ } from "@builder.io/qwik";
-import type { DocumentHead } from "@builder.io/qwik-city";
+import { component$ } from "@builder.io/qwik";
+import { type DocumentHead, server$ } from "@builder.io/qwik-city";
 
 import Counter from "~/components/starter/counter/counter";
 import Hero from "~/components/starter/hero/hero";
@@ -7,10 +7,12 @@ import Infobox from "~/components/starter/infobox/infobox";
 import Starter from "~/components/starter/next-steps/next-steps";
 import { livingData } from "./living-data";
 
-export const useLivingData = livingData({qrl: $(async () => {
+export const useLivingData = livingData({
+  qrl: server$(async function (setNumber?: number, setMessage?: string) {
     const rand = Math.random();
-    return `Juicy data! ${rand}` as const;
+    return `${setMessage ?? 'Juicy data!'} ${setNumber ?? rand}`;
   }),
+  startingValue: "Loading....",
 });
 
 export default component$(() => {
@@ -18,7 +20,13 @@ export default component$(() => {
 
   return (
     <>
-      {data.value}
+      {data.signal.value}
+      <button
+        onClick$={() => {
+          console.log('clicked');
+          data.stop();
+        }}
+      >stop</button>
       <Hero />
       <Starter />
 
