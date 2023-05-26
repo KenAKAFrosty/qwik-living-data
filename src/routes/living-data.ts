@@ -8,7 +8,7 @@ import {
 import { server$ } from "@builder.io/qwik-city";
 
 const targetQrlById = new Map<string, QRL>();
-const disconnectRequestsById = new Set<number>();
+const disconnectRequestsByConnectionId = new Set<number>();
 
 export const livingData = <Q extends QRL>(options: {
     qrl: Q;
@@ -30,64 +30,46 @@ export const livingData = <Q extends QRL>(options: {
     type UseLivingData = Parameters<Q> extends []
         ? () => {
             signal: Signal<undefined | Awaited<ReturnType<Q>>>;
-            disconnect: ReturnType<typeof server$>;
-            refresh: ReturnType<typeof server$>;
-            resume: ReturnType<typeof server$>;
+            disconnectAll: ReturnType<typeof server$>;
+            refresh: QRL<(...args: Parameters<Q>) => void>
         }
         : (...args: Parameters<Q>) => {
             signal: Signal<undefined | Awaited<ReturnType<Q>>>;
-            disconnect: ReturnType<typeof server$>;
-            refresh: ReturnType<typeof server$>;
-            resume: ReturnType<typeof server$>;
+            disconnectAll: ReturnType<typeof server$>;
+            refresh: QRL<(...args: Parameters<Q>) => void>
         };
 
     const useLivingData: UseLivingData = function (...args: Parameters<Q>) {
-        console.log(...args);
         const theseArgs = args;
-        const instanceId = Math.random();
         const signal = useSignal<undefined | Awaited<ReturnType<Q>>>(options.startingValue);
-
-        const stopListening = useSignal(false);
+        const currentConnection = useSignal<number>(-1);
+        const connections = useSignal<number[]>([]);
 
         type ConnectAndListen = Parameters<Q> extends []
             ? () => Promise<void>
             : (...args: Parameters<Q>) => Promise<void>;
 
-
-        const connectionsById = new Set<number>();
         const connectAndListen: ConnectAndListen = $(async (...args: Parameters<Q>) => {
-            const connectionId = Math.random();
-            connectionsById.add(connectionId);
-            const stream = await dataFeeder({ qrlId, instanceId: instanceId, args });
+            const thisConnectionId = Math.random();
+            currentConnection.value = thisConnectionId;
+            connections.value = [...connections.value, thisConnectionId];
+            const stream = await dataFeeder({ qrlId, connectionId: thisConnectionId, args });
             while (true) {
                 let current = await stream.next();
                 console.log(current);
-                if (stopListening.value === true || current.done === true) {
+                console.log(currentConnection.value);
+                if (current.done === true || currentConnection.value !== thisConnectionId) {
+                    await disconnectConnectionInstances([thisConnectionId]);
                     break;
                 }
                 signal.value = current.value as Awaited<ReturnType<Q>>;
             }
-            stopListening.value = false;
-            // for await (const message of stream) {
-            //     console.log(message);
-            //     console.log(await stream.next())
-            //     if (stopListening.value === true) {
-            //         break;
-            //     }
-            //     signal.value = message as Awaited<ReturnType<Q>>;
-            // }
         });
 
 
-        const disconnect = $(async () => {
-            stopListening.value = true;
-            await disconnectDataFeeder(instanceId);
+        const disconnectAll = $(async () => {
+            
         });
-
-        const resume = $(async () => {
-            stopListening.value = false;
-
-        })
 
         const refresh = $(async (...args: Parameters<Q>) => {
             await connectAndListen(...args);
@@ -95,7 +77,7 @@ export const livingData = <Q extends QRL>(options: {
 
         useVisibleTask$(({ cleanup }) => {
 
-            cleanup(() => disconnect());
+            cleanup(() => disconnectAll());
             async function stayConnected(...args: Parameters<Q>) {
                 try {
                     await connectAndListen(...args);
@@ -108,34 +90,36 @@ export const livingData = <Q extends QRL>(options: {
             stayConnected(...theseArgs);
         });
 
-        return { signal, disconnect, refresh, resume };
+        return { signal, disconnectAll, refresh };
     };
 
     return useLivingData;
 };
 
-
-export const disconnectDataFeeder = server$((instanceId: number) => {
-    disconnectRequestsById.add(instanceId);
+export const disconnectConnectionInstances = server$((connectionIds: number[]) => {
+    connectionIds.forEach((connectionId) => {
+        disconnectRequestsByConnectionId.add(connectionId);
+    });
 });
 
 export const dataFeeder = server$(async function* (options: {
     qrlId: string;
     args: any[];
-    instanceId: number;
+    connectionId: number;
     interval?: number;
 }) {
     const func = targetQrlById.get(options.qrlId)!;
-    console.log('x');
-    console.log(options.instanceId, disconnectRequestsById)
+    console.log(options.connectionId);
+
     yield await func(...options.args);
-    disconnectRequestsById.delete(options.instanceId);
 
     let lastCompleted = Date.now();
     const interval = options?.interval || 2500;
-    while (disconnectRequestsById.has(options.instanceId) === false) {
+    while (
+        disconnectRequestsByConnectionId.has(options.connectionId) === false
+    ) {
         if (Date.now() - lastCompleted >= interval) {
-            console.log("x");
+            console.log(options.connectionId);
             yield await func(...options.args);
             lastCompleted = Date.now();
         }

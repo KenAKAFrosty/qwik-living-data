@@ -1,4 +1,4 @@
-import { component$, useSignal, useVisibleTask$ } from "@builder.io/qwik";
+import { component$, useSignal, useStylesScoped$, useVisibleTask$ } from "@builder.io/qwik";
 import { type DocumentHead, server$ } from "@builder.io/qwik-city";
 
 import Counter from "~/components/starter/counter/counter";
@@ -122,24 +122,27 @@ export default component$(() => {
 export const JuicyData = component$(() => {
     const data = useLivingData("Initial!:");
 
+    useStylesScoped$(`
+        section { 
+            margin: auto;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            font-size: 22px;
+        }
+    `)
     return <section>
         {data.signal.value}
         <button
             onClick$={() => {
                 console.log("clicked");
-                data.disconnect();
+                data.disconnectAll();
             }}
         >
             disconnect
         </button>
-
-        <button onClick$={() => {
-            console.log('resuming');
-            data.resume();
-        }}>
-            resume
-        </button>
-
         <button onClick$={() => {
             data.refresh("Refreshed:");
         }}>REFRESH</button>
