@@ -7,10 +7,10 @@ import {
 } from "@builder.io/qwik";
 import { server$ } from "@builder.io/qwik-city";
 
-const shouldStopById = new Map<number, boolean>();
-const targetQrlById = new Map<number, QRL>();
 const argsById = new Map<number, any[]>();
+const targetQrlById = new Map<number, QRL>();
 const refreshRequestById = new Set<number>();
+const shouldStopById = new Map<number, boolean>();
 
 export const livingData = <Q extends QRL>(options: {
   qrl: Q;
