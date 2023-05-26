@@ -30,12 +30,12 @@ export const livingData = <Q extends QRL>(options: {
     type UseLivingData = Parameters<Q> extends []
         ? () => {
             signal: Signal<undefined | Awaited<ReturnType<Q>>>;
-            disconnect: ReturnType<typeof server$>;
+            pause: ReturnType<typeof server$>;
             newArguments: QRL<(...args: Parameters<Q>) => void>
         }
         : (...args: Parameters<Q>) => {
             signal: Signal<undefined | Awaited<ReturnType<Q>>>;
-            disconnect: ReturnType<typeof server$>;
+            pause: ReturnType<typeof server$>;
             newArguments: QRL<(...args: Parameters<Q>) => void>
         };
 
@@ -68,7 +68,7 @@ export const livingData = <Q extends QRL>(options: {
         });
 
 
-        const disconnect = $(async () => {
+        const pause = $(async () => {
             await disconnectConnectionInstances(connections.value);
         });
 
@@ -77,7 +77,7 @@ export const livingData = <Q extends QRL>(options: {
         });
 
         useVisibleTask$(({ cleanup }) => {
-            cleanup(() => disconnect());
+            cleanup(() => pause());
             async function stayConnected(...args: Parameters<Q>) {
                 try {
                     await connectAndListen(...args);
@@ -90,7 +90,7 @@ export const livingData = <Q extends QRL>(options: {
             stayConnected(...currentArgs.value);
         });
 
-        return { signal: dataSignal, disconnect, newArguments };
+        return { signal: dataSignal, pause, newArguments };
     };
 
     return useLivingData;
