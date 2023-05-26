@@ -141,11 +141,14 @@ export const JuicyData = component$(() => {
                 data.pause();
             }}
         >
-            disconnect
+            pause
         </button>
         <button onClick$={() => {
+            data.refresh();
+        }}>Pure Refresh</button>
+        <button onClick$={() => {
             data.newArguments("Refreshed:");
-        }}>REFRESH</button>
+        }}>New Args</button>
     </section>
 })
 

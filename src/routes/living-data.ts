@@ -20,22 +20,24 @@ export const livingData = <Q extends QRL>(options: {
 
 
     // type ReturnValue = {
-    //     signal: Signal<undefined | Awaited<ReturnType<Q>>>;
-    //     disconnect: ReturnType<typeof server$>;
-    //     refresh: ReturnType<typeof server$>;
-    //     resume: ReturnType<typeof server$>;
+        // signal: Signal<undefined | Awaited<ReturnType<Q>>>;
+        // pause: QRL<() => void>;
+        // refresh: QRL<() => void>;
+        // newArguments: QRL<(...args: Parameters<Q>) => void>
     // }
     //If we do ReturnValue it makes the consumer swallow the types until they break it down. not very ergo for DX
     //So we have to repeat here unfortunately
     type UseLivingData = Parameters<Q> extends []
         ? () => {
             signal: Signal<undefined | Awaited<ReturnType<Q>>>;
-            pause: ReturnType<typeof server$>;
+            pause: QRL<() => void>;
+            refresh: QRL<() => void>;
             newArguments: QRL<(...args: Parameters<Q>) => void>
         }
         : (...args: Parameters<Q>) => {
             signal: Signal<undefined | Awaited<ReturnType<Q>>>;
-            pause: ReturnType<typeof server$>;
+            pause: QRL<() => void>;
+            refresh: QRL<() => void>;
             newArguments: QRL<(...args: Parameters<Q>) => void>
         };
 
@@ -56,7 +58,7 @@ export const livingData = <Q extends QRL>(options: {
             connections.value = [...connections.value, thisConnectionId];
             console.log(connections.value);
             const stream = await dataFeeder({ qrlId, connectionId: thisConnectionId, args: currentArgs.value });
-            
+
             while (true) {
                 const current = await stream.next();
                 if (current.done === true || currentConnection.value !== thisConnectionId) {
@@ -70,6 +72,10 @@ export const livingData = <Q extends QRL>(options: {
 
         const pause = $(async () => {
             await disconnectConnectionInstances(connections.value);
+        });
+
+        const refresh = $(async () => {
+            await connectAndListen();
         });
 
         const newArguments = $(async (...args: Parameters<Q>) => {
@@ -91,7 +97,7 @@ export const livingData = <Q extends QRL>(options: {
             stayConnected();
         });
 
-        return { signal: dataSignal, pause, newArguments };
+        return { signal: dataSignal, pause, refresh, newArguments };
     };
 
     return useLivingData;
