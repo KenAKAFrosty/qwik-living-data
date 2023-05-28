@@ -1,8 +1,8 @@
 import {
-  component$,
-  useSignal,
-  useStylesScoped$,
-  useVisibleTask$,
+    component$,
+    useSignal,
+    useStylesScoped$,
+    useVisibleTask$,
 } from "@builder.io/qwik";
 import { server$, type DocumentHead } from "@builder.io/qwik-city";
 
@@ -10,7 +10,7 @@ import Counter from "~/components/starter/counter/counter";
 import Hero from "~/components/starter/hero/hero";
 import Infobox from "~/components/starter/infobox/infobox";
 import Starter from "~/components/starter/next-steps/next-steps";
-import { HasMandatoryParameters, livingData } from "./living-data";
+import { livingData } from "./living-data";
 
 export default component$(() => {
   const show = useSignal(false);

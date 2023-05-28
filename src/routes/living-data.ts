@@ -72,7 +72,7 @@ export type HasMandatoryParameters<T extends (...args: any[]) => any> =
 
 export const livingData = <UserFunction extends QRL>(
   func: UserFunction
-): Parameters<UserFunction> extends []
+): Parameters<UserFunction> extends [] //No arguments in provided function
   ? {
       (): {
         signal: Signal<undefined | Awaited<ReturnType<UserFunction>>>;
@@ -99,7 +99,7 @@ export const livingData = <UserFunction extends QRL>(
         newArguments: QRL<(...args: Parameters<UserFunction>) => void>;
       };
     }
-  : HasMandatoryParameters<UserFunction> extends false
+  : HasMandatoryParameters<UserFunction> extends false //Has arguments but none are mandatory
   ? {
       (): {
         signal: Signal<undefined | Awaited<ReturnType<UserFunction>>>;
@@ -129,6 +129,7 @@ export const livingData = <UserFunction extends QRL>(
       };
     }
   : {
+      //Has arguments and at least 1 is mandatory
       (options: {
         initialArgs: Parameters<UserFunction>;
         startingValue: Awaited<ReturnType<UserFunction>>;
@@ -153,14 +154,17 @@ export const livingData = <UserFunction extends QRL>(
   const qrlId = func.getSymbol();
   targetQrlById.set(qrlId, func);
 
-  function useLivingData(options?: any) {
-    const dataSignal = useSignal<Awaited<ReturnType<UserFunction>>>(
-      options.startingValue
+  function useLivingData(options?: {
+    initialArgs?: Parameters<UserFunction>;
+    interval?: number;
+    startingValue?: Awaited<ReturnType<UserFunction>>;
+  }) {
+    const dataSignal = useSignal<undefined | Awaited<ReturnType<UserFunction>>>(
+      options?.startingValue
     );
+    const args = (options?.initialArgs ?? []) as Parameters<UserFunction>;
 
-    const initialArgs =
-      "initialArgs" in options ? options.initialArgs : undefined;
-    const currentArgs = useSignal<Parameters<UserFunction>>(...initialArgs);
+    const currentArgs = useSignal<Parameters<UserFunction>>(args);
     const currentConnection = useSignal<number>(-1);
     const connections = useSignal<number[]>([]);
 
@@ -249,7 +253,9 @@ export const livingData = <UserFunction extends QRL>(
     return { signal: dataSignal, pause, refresh, newArguments };
   }
 
-  return useLivingData;
+  return useLivingData as any; 
+  //we're doing a LOT of heavy lifting with the function overloads and stuff
+  //So by the time we're here we need to just cast as any and move on otherwise it's hard to get it aligned
 };
 
 export const disconnectConnectionInstances = server$(
