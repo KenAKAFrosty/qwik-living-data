@@ -129,7 +129,7 @@ export function livingData<
 >(arg1: Arg1, arg2?: Arg1 extends Zod.Schema ? UserFunction : undefined) {
   const validator = arg1 instanceof ZodSchema ? arg1 : null;
   const func = (arg1 instanceof ZodSchema ? arg2 : arg1) as UserFunction;
-  const qrlId = func.getSymbol() + (JSON.stringify(validator?._def) || "");
+  const qrlId = func.getSymbol() + JSON.stringify(validator?._def);
   if (validator) {
     validatorById.set(qrlId, validator);
   }
@@ -151,14 +151,14 @@ export function livingData<
     const connectAndListen = $(async () => {
       const thisConnectionId = Math.random();
       currentConnection.value = thisConnectionId;
-      await disconnectConnectionInstances(connections.value);
+      const disconnectPromise =  disconnectConnectionInstances(connections.value);
       connections.value = [...connections.value, thisConnectionId];
       const stream = await dataFeeder({
         qrlId,
         connectionId: thisConnectionId,
         args: currentArgs.value,
       });
-
+      await disconnectPromise;
       while (currentConnection.value === thisConnectionId) {
         const current = await stream.next();
         if (

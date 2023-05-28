@@ -140,7 +140,7 @@ export const useLivingData = livingData(
 
 export const JuicyData = component$(() => {
   const data = useLivingData({
-    initialArgs: ["in"],
+    initialArgs: ["initial"],
     startingValue: "Loading...........",
   });
 
