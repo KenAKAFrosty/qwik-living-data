@@ -1,10 +1,10 @@
 import {
-    component$,
-    useSignal,
-    useStylesScoped$,
-    useVisibleTask$,
+  component$,
+  useSignal,
+  useStylesScoped$,
+  useVisibleTask$,
 } from "@builder.io/qwik";
-import { server$, type DocumentHead } from "@builder.io/qwik-city";
+import { server$, type DocumentHead, z } from "@builder.io/qwik-city";
 
 import Counter from "~/components/starter/counter/counter";
 import Hero from "~/components/starter/hero/hero";
@@ -115,17 +115,35 @@ export default component$(() => {
   );
 });
 
+// const tinker = z.object({
+//     hey: z.string(),
+//     bye: z.number()
+// })
+
+// export const newTest = livingData(
+//   tinker,
+//   server$(async function (hey: boolean) {
+//     return 23423;
+//   })
+// );
+
+// const wooooooo = newTest();
+// wooooooo;
+
 export const useLivingData = livingData(
-  server$(async function (setMessage?: string, setNumber?: number) {
+  z.string(),
+  server$(async function (setMessage: string) {
     const rand = Math.random();
-    return `${setMessage ?? "Juicy data!"} ${setNumber ?? rand}`;
+    return `${setMessage ?? "Juicy data!"} ${rand}`;
   })
 );
 
-
-
 export const JuicyData = component$(() => {
-  const data = useLivingData({initialArgs: ["heyyy"], startingValue: "heyyyy"});
+  const data = useLivingData({
+    initialArgs: ["in"],
+    startingValue: "Loading...........",
+  });
+
 
   data.signal.value;
 
@@ -160,7 +178,7 @@ export const JuicyData = component$(() => {
       </button>
       <button
         onClick$={() => {
-          //   data.newArguments("Refreshed:");
+          data.newArguments("new args passed");
         }}
       >
         New Args
