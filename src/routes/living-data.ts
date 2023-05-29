@@ -25,121 +25,134 @@ export type HasMandatoryParameters<T extends (...args: any[]) => any> =
 //This is because if you pre-create a type to express that, then the consumer of the function sees that type
 //rather than the breakdown of options, which isn't as ergonomic.
 //If there's a way to adjust for that, I would gladly avoid this repetition.
-type LivingDataReturn<UserFunction extends QRL> =
-  Parameters<UserFunction> extends [] //No arguments in provided function
-    ? {
-        (): {
-          signal: Readonly<
-            Signal<undefined | Awaited<ReturnType<UserFunction>>>
-          >;
-          pause: QRL<() => void>;
-          refresh: QRL<() => void>;
-          newInterval: QRL<(interval: number | null) => void>;
-        };
-        (options: {
-          startingValue: Awaited<ReturnType<UserFunction>>;
-          interval?: number | null;
-        }): {
-          signal: Readonly<Signal<Awaited<ReturnType<UserFunction>>>>;
-          pause: QRL<() => void>;
-          refresh: QRL<() => void>;
-          newInterval: QRL<(interval: number | null) => void>;
-        };
-        (options: {
-          interval?: number | null;
-          startingValue?: Awaited<ReturnType<UserFunction>>;
-        }): {
-          signal: Readonly<
-            Signal<undefined | Awaited<ReturnType<UserFunction>>>
-          >;
-          pause: QRL<() => void>;
-          refresh: QRL<() => void>;
-          newInterval: QRL<(interval: number | null) => void>;
-        };
-      }
-    : HasMandatoryParameters<UserFunction> extends false //Has arguments but none are mandatory
-    ? {
-        (): {
-          signal: Readonly<
-            Signal<undefined | Awaited<ReturnType<UserFunction>>>
-          >;
-          pause: QRL<() => void>;
-          refresh: QRL<() => void>;
-          newArguments: QRL<(...args: Parameters<UserFunction>) => void>;
-          newInterval: QRL<(interval: number | null) => void>;
-        };
-        (options: {
-          initialArgs?: Parameters<UserFunction>;
-          startingValue: Awaited<ReturnType<UserFunction>>;
-          interval?: number | null;
-        }): {
-          signal: Readonly<Signal<Awaited<ReturnType<UserFunction>>>>;
-          pause: QRL<() => void>;
-          refresh: QRL<() => void>;
-          newArguments: QRL<(...args: Parameters<UserFunction>) => void>;
-          newInterval: QRL<(interval: number | null) => void>;
-        };
-        (options: {
-          initialArgs?: Parameters<UserFunction>;
-          interval?: number | null;
-          startingValue?: Awaited<ReturnType<UserFunction>>;
-        }): {
-          signal: Readonly<
-            Signal<undefined | Awaited<ReturnType<UserFunction>>>
-          >;
-          pause: QRL<() => void>;
-          refresh: QRL<() => void>;
-          newArguments: QRL<(...args: Parameters<UserFunction>) => void>;
-          newInterval: QRL<(interval: number | null) => void>;
-        };
-      }
-    : {
-        //Has arguments and at least 1 is mandatory
-        (options: {
-          initialArgs: Parameters<UserFunction>;
-          startingValue: Awaited<ReturnType<UserFunction>>;
-          interval?: number | null;
-        }): {
-          signal: Readonly<Signal<Awaited<ReturnType<UserFunction>>>>;
-          pause: QRL<() => void>;
-          refresh: QRL<() => void>;
-          newArguments: QRL<(...args: Parameters<UserFunction>) => void>;
-          newInterval: QRL<(interval: number | null) => void>;
-        };
-        (options: {
-          initialArgs: Parameters<UserFunction>;
-          interval?: number | null;
-          startingValue?: Awaited<ReturnType<UserFunction>>;
-        }): {
-          signal: Readonly<
-            Signal<undefined | Awaited<ReturnType<UserFunction>>>
-          >;
-          pause: QRL<() => void>;
-          refresh: QRL<() => void>;
-          newArguments: QRL<(...args: Parameters<UserFunction>) => void>;
-          newInterval: QRL<(interval: number | null) => void>;
-        };
+type LivingDataReturn<
+  UserFunction extends QRL,
+  IsClientStrategyOnly extends boolean
+> = Parameters<UserFunction> extends [] //No arguments in provided function
+  ? {
+      (): {
+        signal: Readonly<Signal<undefined | Awaited<ReturnType<UserFunction>>>>;
+        pause: QRL<() => void>;
+        refresh: QRL<() => void>;
+        newInterval: QRL<(interval: number | null) => void>;
       };
+      (options: {
+        startingValue: Awaited<ReturnType<UserFunction>>;
+        interval?: number | null;
+        intervalStrategy?: IsClientStrategyOnly extends true
+          ? "client"
+          : "client" | "server";
+      }): {
+        signal: Readonly<Signal<Awaited<ReturnType<UserFunction>>>>;
+        pause: QRL<() => void>;
+        refresh: QRL<() => void>;
+        newInterval: QRL<(interval: number | null) => void>;
+      };
+      (options: {
+        interval?: number | null;
+        startingValue?: Awaited<ReturnType<UserFunction>>;
+        intervalStrategy?: IsClientStrategyOnly extends true
+          ? "client"
+          : "client" | "server";
+      }): {
+        signal: Readonly<Signal<undefined | Awaited<ReturnType<UserFunction>>>>;
+        pause: QRL<() => void>;
+        refresh: QRL<() => void>;
+        newInterval: QRL<(interval: number | null) => void>;
+      };
+    }
+  : HasMandatoryParameters<UserFunction> extends false //Has arguments but none are mandatory
+  ? {
+      (): {
+        signal: Readonly<Signal<undefined | Awaited<ReturnType<UserFunction>>>>;
+        pause: QRL<() => void>;
+        refresh: QRL<() => void>;
+        newArguments: QRL<(...args: Parameters<UserFunction>) => void>;
+        newInterval: QRL<(interval: number | null) => void>;
+      };
+      (options: {
+        initialArgs?: Parameters<UserFunction>;
+        startingValue: Awaited<ReturnType<UserFunction>>;
+        interval?: number | null;
+        intervalStrategy?: IsClientStrategyOnly extends true
+          ? "client"
+          : "client" | "server";
+      }): {
+        signal: Readonly<Signal<Awaited<ReturnType<UserFunction>>>>;
+        pause: QRL<() => void>;
+        refresh: QRL<() => void>;
+        newArguments: QRL<(...args: Parameters<UserFunction>) => void>;
+        newInterval: QRL<(interval: number | null) => void>;
+      };
+      (options: {
+        initialArgs?: Parameters<UserFunction>;
+        interval?: number | null;
+        startingValue?: Awaited<ReturnType<UserFunction>>;
+        intervalStrategy?: IsClientStrategyOnly extends true
+          ? "client"
+          : "client" | "server";
+      }): {
+        signal: Readonly<Signal<undefined | Awaited<ReturnType<UserFunction>>>>;
+        pause: QRL<() => void>;
+        refresh: QRL<() => void>;
+        newArguments: QRL<(...args: Parameters<UserFunction>) => void>;
+        newInterval: QRL<(interval: number | null) => void>;
+      };
+    }
+  : {
+      //Has arguments and at least 1 is mandatory
+      (options: {
+        initialArgs: Parameters<UserFunction>;
+        startingValue: Awaited<ReturnType<UserFunction>>;
+        interval?: number | null;
+        intervalStrategy?: IsClientStrategyOnly extends true
+          ? "client"
+          : "client" | "server";
+      }): {
+        signal: Readonly<Signal<Awaited<ReturnType<UserFunction>>>>;
+        pause: QRL<() => void>;
+        refresh: QRL<() => void>;
+        newArguments: QRL<(...args: Parameters<UserFunction>) => void>;
+        newInterval: QRL<(interval: number | null) => void>;
+      };
+      (options: {
+        initialArgs: Parameters<UserFunction>;
+        interval?: number | null;
+        startingValue?: Awaited<ReturnType<UserFunction>>;
+        intervalStrategy?: IsClientStrategyOnly extends true
+          ? "client"
+          : "client" | "server";
+      }): {
+        signal: Readonly<Signal<undefined | Awaited<ReturnType<UserFunction>>>>;
+        pause: QRL<() => void>;
+        refresh: QRL<() => void>;
+        newArguments: QRL<(...args: Parameters<UserFunction>) => void>;
+        newInterval: QRL<(interval: number | null) => void>;
+      };
+    };
 
-export function livingData<UserFunction extends QRL>(
+export function livingData<
+  UserFunction extends QRL,
+  IsClientStrategyOnly extends boolean
+>(
   func: UserFunction,
-  options?: {
+  setup?: {
     minimumInterval?: number;
     defaultInterval?: number | null;
-    isClientStrategyOnly?: boolean;
+    isClientStrategyOnly?: IsClientStrategyOnly;
   }
-): LivingDataReturn<UserFunction> {
+): LivingDataReturn<UserFunction, IsClientStrategyOnly> {
   const qrlId = func.getSymbol();
   targetQrlById.set(qrlId, func);
 
-  const invocationId = qrlId + JSON.stringify(options);
-  if (options?.minimumInterval) {
-    minimumIntervalByInvocationId.set(invocationId, options.minimumInterval);
+  const invocationId = qrlId + JSON.stringify(setup);
+  if (setup?.minimumInterval) {
+    minimumIntervalByInvocationId.set(invocationId, setup.minimumInterval);
   }
-  if (options?.defaultInterval) {
-    defaultIntervalByInvocationId.set(invocationId, options.defaultInterval);
+  if (setup?.defaultInterval) {
+    defaultIntervalByInvocationId.set(invocationId, setup.defaultInterval);
   }
-  if (options?.isClientStrategyOnly) {
+  if (setup?.isClientStrategyOnly) {
     clientStrategyOnlyInvocationIds.add(invocationId);
   }
 
@@ -147,6 +160,7 @@ export function livingData<UserFunction extends QRL>(
     initialArgs?: Parameters<UserFunction>;
     interval?: number | null;
     startingValue?: Awaited<ReturnType<UserFunction>>;
+    intervalStrategy?: "client" | "server";
   }) {
     const dataSignal = useSignal<undefined | Awaited<ReturnType<UserFunction>>>(
       options?.startingValue
@@ -155,27 +169,34 @@ export function livingData<UserFunction extends QRL>(
     const args = (options?.initialArgs ?? []) as Parameters<UserFunction>;
 
     const currentArgs = useSignal<Parameters<UserFunction>>(args);
-    const currentInterval = useSignal<number | null | undefined>(options?.interval);
+    const currentInterval = useSignal<number | null | undefined>(
+      options?.interval ?? setup?.defaultInterval ?? DEFAULT_INTERVAL
+    );
     const currentConnection = useSignal<number>(-1);
     const connections = useSignal<number[]>([]);
+    const clientOnly =
+      setup?.isClientStrategyOnly || options?.intervalStrategy === "client";
+    const shouldClientSidePoll = useSignal(clientOnly);
 
     const connectAndListen = $(
-      async (options?: { skipInitialCall?: boolean }) => {
+      async (adjustments?: { skipInitialCall?: boolean }) => {
         const thisConnectionId = Math.random();
         currentConnection.value = thisConnectionId;
         const disconnectPromise = disconnectConnectionInstances(
           connections.value
         );
         connections.value = [...connections.value, thisConnectionId];
-        const stream = await dataFeeder({
+        const interval = clientOnly ? null : currentInterval.value;
+        const streamPromise = dataFeeder({
           qrlId,
           connectionId: thisConnectionId,
           invocationId: invocationId,
           args: currentArgs.value,
-          interval: currentInterval.value,
-          skipInitialCall: options?.skipInitialCall,
+          interval: interval,
+          skipInitialCall: adjustments?.skipInitialCall,
         });
         await disconnectPromise;
+        const stream = await streamPromise;
         while (currentConnection.value === thisConnectionId) {
           const current = await stream.next();
           if (
@@ -193,23 +214,31 @@ export function livingData<UserFunction extends QRL>(
     );
 
     const pause = $(async () => {
+      shouldClientSidePoll.value = false;
       await disconnectConnectionInstances(connections.value);
     });
 
     const refresh = $(async () => {
       retryOnFailure(connectAndListen);
+      if (clientOnly) {
+        shouldClientSidePoll.value = true;
+      }
     });
 
     const newArguments = $(async (...args: Parameters<UserFunction>) => {
       currentArgs.value = args;
       retryOnFailure(connectAndListen);
+      if (clientOnly) {
+        shouldClientSidePoll.value = true;
+      }
     });
 
     const newInterval = $(async (interval?: number | null) => {
       currentInterval.value = interval;
-      retryOnFailure(() =>
-        connectAndListen({ skipInitialCall: true })
-      );
+      retryOnFailure(() => connectAndListen({ skipInitialCall: true }));
+      if (clientOnly) {
+        shouldClientSidePoll.value = true;
+      }
     });
 
     useOnWindow(
@@ -220,15 +249,34 @@ export function livingData<UserFunction extends QRL>(
       "online",
       $(() => retryOnFailure(connectAndListen))
     );
+
     useVisibleTask$(({ cleanup }) => {
       cleanup(() => pause());
       retryOnFailure(connectAndListen);
     });
 
+    useVisibleTask$(({ track }) => {
+      track(() => shouldClientSidePoll.value);
+      async function clientSidePolling() {
+        let lastCompleted = Date.now();
+        while (shouldClientSidePoll.value) {
+          if (
+            Date.now() - lastCompleted >=
+            (currentInterval.value || DEFAULT_INTERVAL)
+          ) {
+            await connectAndListen();
+            lastCompleted = Date.now();
+          }
+          await wait(20);
+        }
+      }
+      clientSidePolling();
+    });
+
     return { signal: dataSignal, pause, refresh, newArguments, newInterval };
   }
 
-  return useLivingData as LivingDataReturn<UserFunction>;
+  return useLivingData as LivingDataReturn<UserFunction, IsClientStrategyOnly>;
 }
 
 export const disconnectConnectionInstances = server$(
@@ -239,6 +287,7 @@ export const disconnectConnectionInstances = server$(
   }
 );
 
+export const DEFAULT_INTERVAL = 10000;
 export const dataFeeder = server$(async function* (options: {
   qrlId: string;
   args: any[];
@@ -250,7 +299,7 @@ export const dataFeeder = server$(async function* (options: {
   const func = targetQrlById.get(options.qrlId)!;
   if (options.skipInitialCall !== true) {
     yield await func(...options.args);
-  } 
+  }
   let lastCompleted = Date.now();
   if (clientStrategyOnlyInvocationIds.has(options.invocationId)) {
     return;
@@ -260,11 +309,10 @@ export const dataFeeder = server$(async function* (options: {
     options.invocationId
   );
   const providedInterval = options.interval || retrievedDefaultInterval;
-  if (providedInterval === null) {
+  if (!providedInterval) {
     return;
   }
 
-  const DEFAULT_INTERVAL = 10000;
   const DEFAULT_MINIMUM_INTERVAL = 80;
   const minimumInterval = minimumIntervalByInvocationId.get(
     options.invocationId
@@ -282,11 +330,11 @@ export const dataFeeder = server$(async function* (options: {
       yield await func(...options.args);
       lastCompleted = Date.now();
     }
-    await pause(20);
+    await wait(20);
   }
 });
 
-export function pause(ms: number) {
+export function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
@@ -309,7 +357,7 @@ export async function retryOnFailure<UserFunction extends () => any>(
       return await func();
     } catch (e) {
       console.warn("Living data connection lost:", e);
-      await pause(pauseTime);
+      await wait(pauseTime);
       console.warn(`Waited ${pauseTime} ms. Retrying...`);
       return await retry(func);
     }

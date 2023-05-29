@@ -1,11 +1,10 @@
 import {
-  $,
   component$,
   useSignal,
   useStylesScoped$,
-  useVisibleTask$,
+  useVisibleTask$
 } from "@builder.io/qwik";
-import { type DocumentHead } from "@builder.io/qwik-city";
+import { server$, type DocumentHead } from "@builder.io/qwik-city";
 
 import Counter from "~/components/starter/counter/counter";
 import Hero from "~/components/starter/hero/hero";
@@ -117,16 +116,20 @@ export default component$(() => {
 });
 
 export const useLivingData = livingData(
-  $(async function (setMessage: string) {
+  server$(async function (setMessage: string) {
     const rand = Math.random();
     return `${setMessage ?? "Juicy data!"} ${rand}`;
   })
 );
 
+
+
 export const JuicyData = component$(() => {
   const data = useLivingData({
     initialArgs: ["initial::"],
     startingValue: "Loading...........",
+    interval: 5000,
+    intervalStrategy: "client"
   });
 
   data.signal.value;
@@ -146,7 +149,7 @@ export const JuicyData = component$(() => {
     <section>
       <button
         onClick$={() => {
-          data.newInterval(1000)
+          data.newInterval(1000);
         }}
       >
         new interval 1000ms
