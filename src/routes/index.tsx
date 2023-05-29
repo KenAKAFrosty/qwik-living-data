@@ -1,10 +1,11 @@
 import {
+  $,
   component$,
   useSignal,
   useStylesScoped$,
   useVisibleTask$,
 } from "@builder.io/qwik";
-import { server$, type DocumentHead, z } from "@builder.io/qwik-city";
+import { z, type DocumentHead } from "@builder.io/qwik-city";
 
 import Counter from "~/components/starter/counter/counter";
 import Hero from "~/components/starter/hero/hero";
@@ -39,7 +40,7 @@ export default component$(() => {
 
       <div class="container container-flex">
         <Infobox>
-          <div q:slot="title" class="icon icon-cli">
+          <div q: slot="title" class="icon icon-cli">
             CLI Commands
           </div>
           <>
@@ -68,7 +69,7 @@ export default component$(() => {
 
         <div>
           <Infobox>
-            <div q:slot="title" class="icon icon-apps">
+            <div q: slot="title" class="icon icon-apps">
               Example Apps
             </div>
             <p>
@@ -78,7 +79,7 @@ export default component$(() => {
           </Infobox>
 
           <Infobox>
-            <div q:slot="title" class="icon icon-community">
+            <div q: slot="title" class="icon icon-community">
               Community
             </div>
             <ul>
@@ -115,35 +116,19 @@ export default component$(() => {
   );
 });
 
-// const tinker = z.object({
-//     hey: z.string(),
-//     bye: z.number()
-// })
-
-// export const newTest = livingData(
-//   tinker,
-//   server$(async function (hey: boolean) {
-//     return 23423;
-//   })
-// );
-
-// const wooooooo = newTest();
-// wooooooo;
 
 export const useLivingData = livingData(
-  z.string(),
-  server$(async function (setMessage: string) {
+  $(async function (setMessage: string) {
     const rand = Math.random();
     return `${setMessage ?? "Juicy data!"} ${rand}`;
   })
 );
-
+ 
 export const JuicyData = component$(() => {
   const data = useLivingData({
     initialArgs: ["initial"],
     startingValue: "Loading...........",
   });
-
 
   data.signal.value;
 
