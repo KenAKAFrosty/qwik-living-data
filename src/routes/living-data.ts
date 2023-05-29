@@ -1,10 +1,10 @@
 import {
   $,
+  useOnWindow,
   useSignal,
   useVisibleTask$,
   type QRL,
-  type Signal,
-  useOnWindow,
+  type Signal
 } from "@builder.io/qwik";
 import { server$ } from "@builder.io/qwik-city";
 
@@ -22,11 +22,15 @@ export type HasMandatoryParameters<T extends (...args: any[]) => any> =
   :
   false;
 
+
+//NOTE: A lot of the following function overloads will return repeated info acros the different overloads.
+//This is because if you create a simple type to express that, then the consumer of the function sees that type
+//rather than the breakdown of options, which isn't as ergonomic. If there's a way to adjust for that, I would gladly avoid this repetition.
 type LivingDataReturn<UserFunction extends QRL> =
   Parameters<UserFunction> extends [] //No arguments in provided function
   ? {
     (): {
-      signal: Signal<undefined | Awaited<ReturnType<UserFunction>>>;
+      signal: Readonly<Signal<undefined | Awaited<ReturnType<UserFunction>>>>;
       pause: QRL<() => void>;
       refresh: QRL<() => void>;
     };
@@ -34,7 +38,7 @@ type LivingDataReturn<UserFunction extends QRL> =
       startingValue: Awaited<ReturnType<UserFunction>>;
       interval?: number;
     }): {
-      signal: Signal<Awaited<ReturnType<UserFunction>>>;
+      signal: Readonly<Signal<Awaited<ReturnType<UserFunction>>>>;
       pause: QRL<() => void>;
       refresh: QRL<() => void>;
     };
@@ -42,7 +46,7 @@ type LivingDataReturn<UserFunction extends QRL> =
       interval?: number;
       startingValue?: Awaited<ReturnType<UserFunction>>;
     }): {
-      signal: Signal<undefined | Awaited<ReturnType<UserFunction>>>;
+      signal: Readonly<Signal<undefined | Awaited<ReturnType<UserFunction>>>>;
       pause: QRL<() => void>;
       refresh: QRL<() => void>;
     };
@@ -50,7 +54,7 @@ type LivingDataReturn<UserFunction extends QRL> =
   : HasMandatoryParameters<UserFunction> extends false //Has arguments but none are mandatory
   ? {
     (): {
-      signal: Signal<undefined | Awaited<ReturnType<UserFunction>>>;
+      signal: Readonly<Signal<undefined | Awaited<ReturnType<UserFunction>>>>;
       pause: QRL<() => void>;
       refresh: QRL<() => void>;
       newArguments: QRL<(...args: Parameters<UserFunction>) => void>;
@@ -60,7 +64,7 @@ type LivingDataReturn<UserFunction extends QRL> =
       startingValue: Awaited<ReturnType<UserFunction>>;
       interval?: number;
     }): {
-      signal: Signal<Awaited<ReturnType<UserFunction>>>;
+      signal: Readonly<Signal<Awaited<ReturnType<UserFunction>>>>;
       pause: QRL<() => void>;
       refresh: QRL<() => void>;
       newArguments: QRL<(...args: Parameters<UserFunction>) => void>;
@@ -70,7 +74,7 @@ type LivingDataReturn<UserFunction extends QRL> =
       interval?: number;
       startingValue?: Awaited<ReturnType<UserFunction>>;
     }): {
-      signal: Signal<undefined | Awaited<ReturnType<UserFunction>>>;
+      signal: Readonly<Signal<undefined | Awaited<ReturnType<UserFunction>>>>;
       pause: QRL<() => void>;
       refresh: QRL<() => void>;
       newArguments: QRL<(...args: Parameters<UserFunction>) => void>;
@@ -83,7 +87,7 @@ type LivingDataReturn<UserFunction extends QRL> =
       startingValue: Awaited<ReturnType<UserFunction>>;
       interval?: number;
     }): {
-      signal: Signal<Awaited<ReturnType<UserFunction>>>;
+      signal: Readonly<Signal<Awaited<ReturnType<UserFunction>>>>;
       pause: QRL<() => void>;
       refresh: QRL<() => void>;
       newArguments: QRL<(...args: Parameters<UserFunction>) => void>;
@@ -93,7 +97,7 @@ type LivingDataReturn<UserFunction extends QRL> =
       interval?: number;
       startingValue?: Awaited<ReturnType<UserFunction>>;
     }): {
-      signal: Signal<undefined | Awaited<ReturnType<UserFunction>>>;
+      signal: Readonly<Signal<undefined | Awaited<ReturnType<UserFunction>>>>;
       pause: QRL<() => void>;
       refresh: QRL<() => void>;
       newArguments: QRL<(...args: Parameters<UserFunction>) => void>;
@@ -115,6 +119,7 @@ export function livingData<
     const dataSignal = useSignal<undefined | Awaited<ReturnType<UserFunction>>>(
       options?.startingValue
     );
+
     const args = (options?.initialArgs ?? []) as Parameters<UserFunction>;
 
     const currentArgs = useSignal<Parameters<UserFunction>>(args);

@@ -116,10 +116,8 @@ export default component$(() => {
   );
 });
 
-
 export const useLivingData = livingData(
   $(async function (setMessage: string) {
-    
     const rand = Math.random();
     return `${setMessage ?? "Juicy data!"} ${rand}`;
   })
