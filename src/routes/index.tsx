@@ -119,6 +119,7 @@ export default component$(() => {
 
 export const useLivingData = livingData(
   $(async function (setMessage: string) {
+    
     const rand = Math.random();
     return `${setMessage ?? "Juicy data!"} ${rand}`;
   })
@@ -126,7 +127,7 @@ export const useLivingData = livingData(
 
 export const JuicyData = component$(() => {
   const data = useLivingData({
-    initialArgs: ["initial"],
+    initialArgs: ["initial::"],
     startingValue: "Loading...........",
   });
 

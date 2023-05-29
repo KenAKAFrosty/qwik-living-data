@@ -12,15 +12,14 @@ const targetQrlById = new Map<string, QRL>();
 const disconnectRequestsByConnectionId = new Set<number>();
 
 export type HasMandatoryParameters<T extends (...args: any[]) => any> =
-  // distribute over union types
   Parameters<T> extends [infer P, ...infer Rest]
-  ? // check if the first parameter includes `undefined`
+  ?
   P extends undefined
-  ? // if it does, continue checking the rest
+  ?
   HasMandatoryParameters<(...args: Rest) => any>
-  : // if it doesn't, the function has mandatory parameters
+  :
   true
-  : // if there are no parameters, the function doesn't have mandatory parameters
+  :
   false;
 
 type LivingDataReturn<UserFunction extends QRL> =
@@ -102,16 +101,12 @@ type LivingDataReturn<UserFunction extends QRL> =
   };
 
 
-export function livingData<UserFunction extends QRL>(
-  func: UserFunction
-): LivingDataReturn<UserFunction>;
-
-//Implementation
 export function livingData<
   UserFunction extends QRL,
->(func: UserFunction) {
+>(func: UserFunction): LivingDataReturn<UserFunction> {
   const qrlId = func.getSymbol();
   targetQrlById.set(qrlId, func);
+
   function useLivingData(options?: {
     initialArgs?: Parameters<UserFunction>;
     interval?: number;
@@ -166,6 +161,7 @@ export function livingData<
     });
 
     useOnWindow('focus', $(() => retryOnFailure(connectAndListen)));
+    useOnWindow('online', $(() => retryOnFailure(connectAndListen)));
     useVisibleTask$(({ cleanup }) => {
       cleanup(() => pause());
       retryOnFailure(connectAndListen);
@@ -174,7 +170,7 @@ export function livingData<
     return { signal: dataSignal, pause, refresh, newArguments };
   }
 
-  return useLivingData;
+  return useLivingData as LivingDataReturn<UserFunction>;
 }
 
 export const disconnectConnectionInstances = server$(
