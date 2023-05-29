@@ -11,6 +11,7 @@ import { server$ } from "@builder.io/qwik-city";
 const targetQrlById = new Map<string, QRL>();
 const minimumIntervalByInvocationId = new Map<string, number>();
 const defaultIntervalByInvocationId = new Map<string, number | null>();
+const clientStrategyOnlyInvocationIds = new Set<string>();
 const disconnectRequestsByConnectionId = new Set<number>();
 
 export type HasMandatoryParameters<T extends (...args: any[]) => any> =
@@ -125,6 +126,7 @@ export function livingData<UserFunction extends QRL>(
   options?: {
     minimumInterval?: number;
     defaultInterval?: number | null;
+    isClientStrategyOnly?: boolean;
   }
 ): LivingDataReturn<UserFunction> {
   const qrlId = func.getSymbol();
@@ -136,6 +138,9 @@ export function livingData<UserFunction extends QRL>(
   }
   if (options?.defaultInterval) {
     defaultIntervalByInvocationId.set(invocationId, options.defaultInterval);
+  }
+  if (options?.isClientStrategyOnly) {
+    clientStrategyOnlyInvocationIds.add(invocationId);
   }
 
   function useLivingData(options?: {
@@ -245,14 +250,15 @@ export const dataFeeder = server$(async function* (options: {
   const func = targetQrlById.get(options.qrlId)!;
   if (options.skipInitialCall !== true) {
     yield await func(...options.args);
-  }
-
+  } 
   let lastCompleted = Date.now();
+  if (clientStrategyOnlyInvocationIds.has(options.invocationId)) {
+    return;
+  }
 
   const retrievedDefaultInterval = defaultIntervalByInvocationId.get(
     options.invocationId
   );
-
   const providedInterval = options.interval || retrievedDefaultInterval;
   if (providedInterval === null) {
     return;
