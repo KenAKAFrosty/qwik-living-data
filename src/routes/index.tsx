@@ -144,6 +144,13 @@ export const JuicyData = component$(() => {
     `);
   return (
     <section>
+      <button
+        onClick$={() => {
+          data.newInterval(1000)
+        }}
+      >
+        new interval 1000ms
+      </button>
       {data.signal.value}
       <button
         onClick$={() => {
