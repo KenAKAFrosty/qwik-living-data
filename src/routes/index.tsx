@@ -2,7 +2,7 @@ import {
   component$,
   useSignal,
   useStylesScoped$,
-  useVisibleTask$
+  useVisibleTask$,
 } from "@builder.io/qwik";
 import { server$, type DocumentHead } from "@builder.io/qwik-city";
 
@@ -122,17 +122,19 @@ export const useLivingData = livingData(
   })
 );
 
-
-
 export const JuicyData = component$(() => {
-  const data = useLivingData({
-    initialArgs: ["initial::"],
+  const clientSidePolling = useLivingData({
+    initialArgs: ["initial clientside:"],
     startingValue: "Loading...........",
     interval: 5000,
-    intervalStrategy: "client"
+    intervalStrategy: "client",
   });
 
-  data.signal.value;
+  const serverSidePolling = useLivingData({
+    initialArgs: ["initial serverside:"],
+    startingValue: "Loading...........",
+    interval: 5000,
+  });
 
   useStylesScoped$(`
         section { 
@@ -143,41 +145,76 @@ export const JuicyData = component$(() => {
             align-items: center;
             gap: 10px;
             font-size: 22px;
+            margin-bottom: 80px;
         }
     `);
   return (
-    <section>
-      <button
-        onClick$={() => {
-          data.newInterval(1000);
-        }}
-      >
-        new interval 1000ms
-      </button>
-      {data.signal.value}
-      <button
-        onClick$={() => {
-          console.log("clicked");
-          data.pause();
-        }}
-      >
-        pause
-      </button>
-      <button
-        onClick$={() => {
-          data.refresh();
-        }}
-      >
-        Pure Refresh
-      </button>
-      <button
-        onClick$={() => {
-          data.newArguments("new args passed");
-        }}
-      >
-        New Args
-      </button>
-    </section>
+    <>
+      <section>
+        <h2>server side</h2>
+        {serverSidePolling.signal.value}
+        <button
+          onClick$={() => {
+            serverSidePolling.newInterval(1000);
+          }}
+        >
+          new interval 1000ms
+        </button>
+        <button
+          onClick$={() => {
+            serverSidePolling.pause();
+          }}
+        >
+          pause
+        </button>
+        <button
+          onClick$={() => {
+            serverSidePolling.refresh();
+          }}
+        >
+          Pure Refresh
+        </button>
+        <button
+          onClick$={() => {
+            serverSidePolling.newArguments("new args passed");
+          }}
+        >
+          New Args
+        </button>
+      </section>
+      <section>
+        <h2>Client side polling</h2>
+        {clientSidePolling.signal.value}
+        <button
+          onClick$={() => {
+            clientSidePolling.newInterval(1000);
+          }}
+        >
+          new interval 1000ms
+        </button>
+        <button
+          onClick$={() => {
+            clientSidePolling.pause();
+          }}
+        >
+          pause
+        </button>
+        <button
+          onClick$={() => {
+            clientSidePolling.refresh();
+          }}
+        >
+          Pure Refresh
+        </button>
+        <button
+          onClick$={() => {
+            clientSidePolling.newArguments("new args passed");
+          }}
+        >
+          New Args
+        </button>
+      </section>
+    </>
   );
 });
 
