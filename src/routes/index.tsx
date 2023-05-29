@@ -5,7 +5,7 @@ import {
   useStylesScoped$,
   useVisibleTask$,
 } from "@builder.io/qwik";
-import { z, type DocumentHead } from "@builder.io/qwik-city";
+import { type DocumentHead } from "@builder.io/qwik-city";
 
 import Counter from "~/components/starter/counter/counter";
 import Hero from "~/components/starter/hero/hero";
@@ -40,7 +40,7 @@ export default component$(() => {
 
       <div class="container container-flex">
         <Infobox>
-          <div q: slot="title" class="icon icon-cli">
+          <div q:slot="title" class="icon icon-cli">
             CLI Commands
           </div>
           <>
@@ -69,7 +69,7 @@ export default component$(() => {
 
         <div>
           <Infobox>
-            <div q: slot="title" class="icon icon-apps">
+            <div q:slot="title" class="icon icon-apps">
               Example Apps
             </div>
             <p>
@@ -79,7 +79,7 @@ export default component$(() => {
           </Infobox>
 
           <Infobox>
-            <div q: slot="title" class="icon icon-community">
+            <div q:slot="title" class="icon icon-community">
               Community
             </div>
             <ul>
@@ -123,7 +123,7 @@ export const useLivingData = livingData(
     return `${setMessage ?? "Juicy data!"} ${rand}`;
   })
 );
- 
+
 export const JuicyData = component$(() => {
   const data = useLivingData({
     initialArgs: ["initial"],

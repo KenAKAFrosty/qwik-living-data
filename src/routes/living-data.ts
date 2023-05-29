@@ -196,9 +196,11 @@ export const dataFeeder = server$(async function* (options: {
   yield await func(...options.args);
   let lastCompleted = Date.now();
 
-  const interval = Math.max(options?.interval || 2500, 100);
-  //Find a more suitable magic number. maybe 20ms? Using 100 for now
+  const DEFAULT_INTERVAL = 10000;
+  const interval = Math.max(options?.interval || DEFAULT_INTERVAL, 50);
+  //Find a more suitable magic number. maybe 20ms? Using 50 for now
   //just avoid crashing a server if someone wanted to be malicious
+  //Also, allow this to be passed as setup information so user can still adjust
 
   while (disconnectRequestsByConnectionId.has(options.connectionId) === false) {
     if (Date.now() - lastCompleted >= interval) {
@@ -229,8 +231,9 @@ export async function retryOnFailure<UserFunction extends () => any>(func: UserF
     try {
       return await func();
     } catch (e) {
-      console.warn("Living data connection lost:", e, `| Retrying after ${pauseTime} ms`);
+      console.warn("Living data connection lost:", e);
       await pause(pauseTime);
+      console.warn(`Waited ${pauseTime} ms. Retrying...`)
       return await retry(func);
     }
   }
