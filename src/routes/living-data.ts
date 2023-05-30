@@ -353,15 +353,15 @@ export function wait(ms: number) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-export async function retryOnFailure<UserFunction extends () => any>(
-    func: UserFunction
-): Promise<ReturnType<UserFunction>> {
+export async function retryOnFailure<Func extends () => any>(
+    func: Func
+): Promise<ReturnType<Func>> {
     const BASE_PAUSE_TIME = 100;
     const PAUSE_TIME_DELAY_MODIFIER = 500;
     const MAX_ATTEMPTS = 7;
 
     let attempts = 0;
-    async function retry(func: UserFunction): Promise<ReturnType<UserFunction>> {
+    async function retry(func: Func): Promise<ReturnType<Func>> {
         const pauseTime =
             BASE_PAUSE_TIME + attempts * (attempts / 2) * PAUSE_TIME_DELAY_MODIFIER;
         attempts++;
