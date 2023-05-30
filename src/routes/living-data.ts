@@ -183,9 +183,12 @@ export function livingData<
             async (adjustments?: { skipInitialCall?: boolean }) => {
                 const thisConnectionId = Math.random();
                 currentConnection.value = thisConnectionId;
-                const disconnectPromise = disconnectConnectionInstances(
-                    connections.value
-                );
+                let disconnectPromise;
+                if (!clientOnly) {
+                    disconnectPromise = disconnectConnectionInstances(
+                        connections.value
+                    );
+                }
                 connections.value = [...connections.value, thisConnectionId];
                 const interval = clientOnly ? null : currentInterval.value;
                 const streamPromise = dataFeeder({
@@ -196,7 +199,9 @@ export function livingData<
                     interval: interval,
                     skipInitialCall: adjustments?.skipInitialCall,
                 });
-                await disconnectPromise;
+                if (!clientOnly) {
+                    await disconnectPromise;
+                }
                 const stream = await streamPromise;
                 while (currentConnection.value === thisConnectionId) {
                     const current = await stream.next();
@@ -216,7 +221,9 @@ export function livingData<
 
         const pause = $(async () => {
             shouldClientSidePoll.value = false;
-            await disconnectConnectionInstances(connections.value);
+            if (!clientOnly) {
+                await disconnectConnectionInstances(connections.value);
+            }
         });
 
         const refresh = $(async () => {
