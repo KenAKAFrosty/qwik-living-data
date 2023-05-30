@@ -126,7 +126,7 @@ export const JuicyData = component$(() => {
   const clientSidePolling = useLivingData({
     initialArgs: ["initial clientside:"],
     startingValue: "Loading...........",
-    interval: 5000,
+    interval: 10000,
     intervalStrategy: "client",
   });
 
@@ -187,10 +187,10 @@ export const JuicyData = component$(() => {
         {clientSidePolling.signal.value}
         <button
           onClick$={() => {
-            clientSidePolling.newInterval(1000);
+            clientSidePolling.newInterval(4000);
           }}
         >
-          new interval 1000ms
+          new interval 4000ms
         </button>
         <button
           onClick$={() => {
