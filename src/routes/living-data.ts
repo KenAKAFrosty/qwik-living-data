@@ -4,10 +4,10 @@ import {
     useSignal,
     useVisibleTask$,
     type QRL,
-    type Signal,
-    useTask$,
+    type Signal
 } from "@builder.io/qwik";
 import { server$ } from "@builder.io/qwik-city";
+
 
 const targetQrlById = new Map<string, QRL>();
 const minimumIntervalByInvocationId = new Map<string, number>();
@@ -178,7 +178,6 @@ export function livingData<
         const clientOnly =
             setup?.isClientStrategyOnly || options?.intervalStrategy === "client";
         const shouldClientSidePoll = useSignal(clientOnly);
-        const lastCompletedClientside = useSignal(Date.now());
 
         const connectAndListen = $(
             async (adjustments?: { skipInitialCall?: boolean }) => {
@@ -245,34 +244,36 @@ export function livingData<
             retryOnFailure(connectAndListen);
         });
 
-        useTask$(({track})=> { 
-            console.log('running interval update tracker', {lastCompletedClientside: lastCompletedClientside.value, currentInterval: currentInterval.value})
-            track(()=> currentInterval.value); 
-            lastCompletedClientside.value = Date.now();
-            console.log('after running interval update tracker',{lastCompletedClientside: lastCompletedClientside.value, currentInterval: currentInterval.value})
-            //For now, the intended behavior is that when someone updates to a new interval, it'll start from that point.
-            //e.g., I set interval to 4000ms right now, then the next time it fires is 4000ms from right now.
 
-            //Without this, it would be 4000ms from the last time fired. If the interval was previously 30,000ms, and 20,000ms has passed
-            //then it would fire right away because it's been at least 4000ms since the last time it fired. But if it's only been 2,000ms
-            //since it last fired, then it would go off in 2,000ms. This feels erratic and unpredictable. 
+        //For now, the intended behavior is that when someone updates to a new interval, it'll start from that point.
+        //e.g., I set interval to 4000ms right now, then the next time it fires is 4000ms from right now.
 
-            //By instead resetting it so that it will always be the new interval value from right now when the interval is updated,
-            //It keeps the behavior consistent on expectations. 
-            //If the one updating the interval always wants to get fresh values right away, then they can just refresh along side the interval update.
-        });
+        //Without this, it would be 4000ms from the last time fired. If the interval was previously 30,000ms, and 20,000ms has passed
+        //then it would fire right away because it's been at least 4000ms since the last time it fired. But if it's only been 2,000ms
+        //since it last fired, then it would go off in 2,000ms. This feels erratic and unpredictable. 
+
+        //By instead resetting it so that it will always be the new interval value from right now when the interval is updated,
+        //It keeps the behavior consistent on expectations. 
+        //If the one updating the interval always wants to get fresh values right away, then they can just refresh along side the interval update.
+
         useVisibleTask$(({ track }) => {
             console.log('running client side polling')
             track(() => shouldClientSidePoll.value);
             async function clientSidePolling() {
-                lastCompletedClientside.value = Date.now();
+                let lastCompleted = Date.now();
+                let interval = currentInterval.value || DEFAULT_INTERVAL;
                 while (shouldClientSidePoll.value) {
+                    if (currentInterval.value !== interval) {
+                        lastCompleted = Date.now();
+                        interval = currentInterval.value || DEFAULT_INTERVAL;
+                    }
+
                     if (
-                        Date.now() - lastCompletedClientside.value >=
-                        (currentInterval.value || DEFAULT_INTERVAL)
+                        Date.now() - lastCompleted >=
+                        (interval)
                     ) {
                         await connectAndListen();
-                        lastCompletedClientside.value = Date.now();
+                        lastCompleted = Date.now();
                     }
                     await wait(20);
                 }
