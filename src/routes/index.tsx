@@ -126,7 +126,7 @@ export const useIssLocation = livingData(getIssLocation);
 export const IssLocation = component$(() => {
 
     const loadedLocation = useLoadedIssLocation();
-    const issLocation = useIssLocation({
+    const iss = useIssLocation({
         startingValue: loadedLocation.value,
         interval: 1000
     });
@@ -148,8 +148,8 @@ export const IssLocation = component$(() => {
         <>
             <section>
                 <h2>Current ISS Location</h2>
-                <h3>Latitude: {issLocation.signal.value.iss_position.latitude}</h3>
-                <h3>Longitude: {issLocation.signal.value.iss_position.longitude}</h3>
+                <h3>Latitude: {iss.signal.value.iss_position.latitude}</h3>
+                <h3>Longitude: {iss.signal.value.iss_position.longitude}</h3>
             </section>
         </>
     );
