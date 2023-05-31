@@ -1,13 +1,12 @@
 import {
     $,
-    useOnWindow,
     useSignal,
     useVisibleTask$,
     type QRL,
     type Signal
 } from "@builder.io/qwik";
 import { server$ } from "@builder.io/qwik-city";
-
+import areEqual from "fast-deep-equal";
 
 const targetQrlById = new Map<string, QRL>();
 const minimumIntervalByInvocationId = new Map<string, number>();
@@ -143,9 +142,10 @@ export function livingData<
         isClientStrategyOnly?: IsClientStrategyOnly;
     }
 ): LivingDataReturn<UserFunction, IsClientStrategyOnly> {
-    const qrlId = func.getSymbol();
-    targetQrlById.set(qrlId, func);
-
+    //@ts-ignore
+    const targetFunc = func.getCaptured()[0]; //Will likely need some more robust checks. Edge cases like nested QRLs, maybe plain QRL vs server$ works differently, etc.
+    const qrlId = targetFunc.getSymbol();
+    targetQrlById.set(qrlId, targetFunc);
     const invocationId = qrlId + JSON.stringify(setup);
     if (setup?.minimumInterval) {
         minimumIntervalByInvocationId.set(invocationId, setup.minimumInterval);
@@ -202,16 +202,25 @@ export function livingData<
                 if (!clientOnly) {
                     await disconnectPromise;
                 }
-                const stream = await streamPromise;
+                let stream = await streamPromise;
                 while (currentConnection.value === thisConnectionId) {
                     const current = await stream.next();
-                    if (
-                        current.done === true ||
-                        currentConnection.value !== thisConnectionId
-                    ) {
+                    if (currentConnection.value !== thisConnectionId) { 
                         break;
                     }
-                    dataSignal.value = current.value as Awaited<ReturnType<UserFunction>>;
+                    if (current.done === true) {
+                        //If we were supposed to be truly done, we would have just broken above. 
+                        //This is likely due to getting evicted on the server end, so we need to reconnect.
+                        stream = await dataFeeder({
+                            qrlId,
+                            connectionId: thisConnectionId,
+                            invocationId: invocationId,
+                            args: currentArgs.value,
+                            interval: interval,
+                        });
+                    } else { 
+                        dataSignal.value = current.value as Awaited<ReturnType<UserFunction>>;
+                    }
                 }
                 connections.value = connections.value.filter(
                     (id) => id !== thisConnectionId
@@ -243,11 +252,14 @@ export function livingData<
             if (clientOnly) { shouldClientSidePoll.value = true; }
         });
 
-        useOnWindow("focus", $(() => retryOnFailure(connectAndListen)));
-        useOnWindow("online", $(() => retryOnFailure(connectAndListen)));
-
         useVisibleTask$(({ cleanup }) => {
-            cleanup(() => pause());
+            window.addEventListener("focus", refresh);
+            window.addEventListener("online", refresh);
+            cleanup(() => { 
+                window.removeEventListener("focus", refresh);
+                window.removeEventListener("online", refresh);
+                pause();
+            });
             retryOnFailure(connectAndListen);
         });
 
@@ -273,7 +285,6 @@ export function livingData<
                         lastCompleted = Date.now();
                         interval = currentInterval.value || DEFAULT_INTERVAL;
                     }
-
                     if (
                         Date.now() - lastCompleted >=
                         (interval)
@@ -312,7 +323,7 @@ export const dataFeeder = server$(async function* (options: {
 }) {
     const func = targetQrlById.get(options.qrlId)!;
     if (options.skipInitialCall !== true) {
-        yield await func(...options.args);
+        yield await func.call(this, ...options.args);
     }
     let lastCompleted = Date.now();
     if (clientStrategyOnlyInvocationIds.has(options.invocationId)) {
@@ -339,9 +350,14 @@ export const dataFeeder = server$(async function* (options: {
             : DEFAULT_MINIMUM_INTERVAL
     );
 
+    let lastResponse;
     while (disconnectRequestsByConnectionId.has(options.connectionId) === false) {
         if (Date.now() - lastCompleted >= interval) {
-            yield await func(...options.args);
+            const response = await func.call(this, ...options.args);
+            if (!areEqual(response, lastResponse)) {
+                lastResponse = response;
+                yield response;
+            }
             lastCompleted = Date.now();
         }
         await wait(20);
