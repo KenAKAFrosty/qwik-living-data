@@ -15,7 +15,7 @@ import { SpaceStationIcon } from "~/components/icons";
 export default component$(() => {
   return (
     <>
-      <IssLocation />
+      <Iss />
       <Hero />
       <Starter />
 
@@ -109,9 +109,7 @@ export default component$(() => {
 });
 
 export const getIssLocation = server$(async function () {
-  const result = await fetch("http://api.open-notify.org/iss-now.json").then(
-    (r) => r.json()
-  );
+  const result = await fetch("http://api.open-notify.org/iss-now.json").then((r) => r.json());
   return result as {
     iss_position: {
       latitude: string;
@@ -121,12 +119,10 @@ export const getIssLocation = server$(async function () {
     timestamp: number;
   };
 });
-export const useLoadedIssLocation = routeLoader$((event) =>
-  getIssLocation.call(event)
-);
+export const useLoadedIssLocation = routeLoader$((event) =>getIssLocation.call(event));
 export const useIssLocation = livingData(getIssLocation);
 
-export const IssLocation = component$(() => {
+export const Iss = component$(() => {
   const loadedLocation = useLoadedIssLocation();
   const interval = 300;
   const iss = useIssLocation({
