@@ -128,7 +128,7 @@ export const IssLocation = component$(() => {
     const loadedLocation = useLoadedIssLocation();
     const issLocation = useIssLocation({
         startingValue: loadedLocation.value,
-        interval: 2000
+        interval: 1000
     });
 
 
