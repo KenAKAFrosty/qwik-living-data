@@ -264,7 +264,6 @@ export function livingData<
         //If the one updating the interval always wants to get fresh values right away, then they can just refresh along side the interval update.
 
         useVisibleTask$(({ track }) => {
-            console.log('running client side polling')
             track(() => shouldClientSidePoll.value);
             async function clientSidePolling() {
                 let lastCompleted = Date.now();
