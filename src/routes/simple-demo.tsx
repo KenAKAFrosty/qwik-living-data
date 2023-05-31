@@ -1,8 +1,9 @@
 import {
     component$,
+    useSignal,
     useStylesScoped$
 } from "@builder.io/qwik";
-import { routeLoader$, server$, type DocumentHead } from "@builder.io/qwik-city";
+import { server$, type DocumentHead } from "@builder.io/qwik-city";
 
 import Counter from "~/components/starter/counter/counter";
 import Hero from "~/components/starter/hero/hero";
@@ -13,7 +14,7 @@ import { livingData } from "./living-data";
 export default component$(() => {
     return (
         <>
-            <IssLocation />
+            <JuicyData />
             <Hero />
             <Starter />
 
@@ -106,31 +107,29 @@ export default component$(() => {
     );
 });
 
+export const useLivingData = livingData(
+    server$(async function (setMessage: string) {
+        const rand = Math.random();
+        return `${setMessage ?? "Juicy data!"} ${rand}`;
+    })
+);
 
-export const getIssLocation = server$(async function() { 
-    const result = await fetch("http://api.open-notify.org/iss-now.json").then(r => r.json());
-    return result as { 
-        iss_position: {
-            latitude: string;
-            longitude: string;
-        },
-        message: string;
-        timestamp: number;
-    }
-})
-export const useLoadedIssLocation = routeLoader$((event) => getIssLocation.call(event))
-export const useIssLocation = livingData(getIssLocation);
+export const JuicyData = component$(() => {
 
+    const showClientExample = useSignal(false);
 
-
-export const IssLocation = component$(() => {
-
-    const loadedLocation = useLoadedIssLocation();
-    const issLocation = useIssLocation({
-        startingValue: loadedLocation.value,
-        interval: 2000
+    const clientSidePolling = useLivingData({
+        initialArgs: ["initial clientside:"],
+        startingValue: "Loading...........",
+        interval: 10000,
+        intervalStrategy: "client",
     });
 
+    const serverSidePolling = useLivingData({
+        initialArgs: ["initial serverside:"],
+        startingValue: "Loading...........",
+        interval: 5000,
+    });
 
     useStylesScoped$(`
         section { 
@@ -147,10 +146,89 @@ export const IssLocation = component$(() => {
     return (
         <>
             <section>
-                <h2>Current ISS Location</h2>
-                <h3>Latitude: {issLocation.signal.value.iss_position.latitude}</h3>
-                <h3>Longitude: {issLocation.signal.value.iss_position.longitude}</h3>
+                <h2>server side</h2>
+                {serverSidePolling.signal.value}
+                <button
+                    onClick$={() => {
+                        serverSidePolling.newInterval(1000);
+                    }}
+                >
+                    new interval 1000ms
+                </button>
+                <button
+                    onClick$={() => {
+                        serverSidePolling.newInterval(null);
+                    }}
+                >
+                    new interval null
+                </button>
+                <button
+                    onClick$={() => {
+                        serverSidePolling.pause();
+                    }}
+                >
+                    pause
+                </button>
+                <button
+                    onClick$={() => {
+                        serverSidePolling.refresh();
+                    }}
+                >
+                    Pure Refresh
+                </button>
+                <button
+                    onClick$={() => {
+                        serverSidePolling.newArguments("new args passed");
+                    }}
+                >
+                    New Args
+                </button>
             </section>
+
+            <button onClick$={() => {
+                showClientExample.value = true;
+            }}>Show client example</button>
+
+
+            {showClientExample.value && <section>
+                <h2>Client side polling</h2>
+                {clientSidePolling.signal.value}
+                <button
+                    onClick$={() => {
+                        clientSidePolling.newInterval(1000);
+                    }}
+                >
+                    new interval 1000ms
+                </button>
+                <button
+                    onClick$={() => {
+                        clientSidePolling.newInterval(null);
+                    }}
+                >
+                    new interval null
+                </button>
+                <button
+                    onClick$={() => {
+                        clientSidePolling.pause();
+                    }}
+                >
+                    pause
+                </button>
+                <button
+                    onClick$={() => {
+                        clientSidePolling.refresh();
+                    }}
+                >
+                    Pure Refresh
+                </button>
+                <button
+                    onClick$={() => {
+                        clientSidePolling.newArguments("new args passed");
+                    }}
+                >
+                    New Args
+                </button>
+            </section>}
         </>
     );
 });
