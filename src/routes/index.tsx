@@ -202,12 +202,16 @@ export const IssLocation = component$(() => {
   );
 });
 
-export const head: DocumentHead = {
-  title: "Welcome to Qwik",
-  meta: [
-    {
-      name: "description",
-      content: "Qwik site description",
-    },
-  ],
+export const head: DocumentHead = (event) => {
+  const iss = event.resolveValue(useLoadedIssLocation);
+
+  return {
+    title: "Qwik - Living Data",
+    meta: [
+      {
+        name: "description",
+        content: `Current ISS Position: Latitude: ${iss.iss_position.latitude} | Longitude: ${iss.iss_position.longitude}`,
+      },
+    ],
+  };
 };
