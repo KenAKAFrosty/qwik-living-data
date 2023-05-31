@@ -119,7 +119,7 @@ export const getIssLocation = server$(async function () {
     timestamp: number;
   };
 });
-export const useLoadedIssLocation = routeLoader$((event) =>getIssLocation.call(event));
+export const useLoadedIssLocation = routeLoader$((event) => getIssLocation.call(event));
 export const useIssLocation = livingData(getIssLocation);
 
 export const Iss = component$(() => {
@@ -131,8 +131,8 @@ export const Iss = component$(() => {
   });
   const mercatorProjection = useComputed$(() => {
     return {
-      x: Number(iss.signal.value.iss_position.longitude) / 180,
-      y: Number(iss.signal.value.iss_position.latitude) / 90,
+      x:(earthSize / 2) * (Number(iss.signal.value.iss_position.longitude) / 180),
+      y:(earthSize / 2) * (-Number(iss.signal.value.iss_position.latitude) / 90),
     };
   });
   const earthSize = 400;
@@ -183,13 +183,7 @@ export const Iss = component$(() => {
           {iss.signal.value.iss_position.longitude}
         </p>
         <div>
-          <span
-            style={{
-              transform: `translate(${
-                (earthSize / 2) * mercatorProjection.value.x
-              }px, ${(earthSize / 2) * -mercatorProjection.value.y}px`,
-            }}
-          >
+          <span style={{transform: `translate(${mercatorProjection.value.x}px, ${mercatorProjection.value.y}px`}}>
             <SpaceStationIcon />
           </span>
         </div>
