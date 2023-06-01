@@ -25,8 +25,11 @@ export const onRequest: RequestHandler = async (event) => {
     username: dbUsername,
     password: dbPassword,
   });
-  console.log('headers', event.request.headers);
-  console.log('platform', event.platform );
+  event.request.headers.forEach((value, key) => {
+    console.log(`${key} => ${value}`);
+  })
+  console.log('platform req', event.platform.req);
+  console.log('platform ip', event.platform.ip);
   // const db = getDb();
 
 }
