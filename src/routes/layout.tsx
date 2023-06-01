@@ -4,8 +4,10 @@ import { routeLoader$, type RequestHandler } from '@builder.io/qwik-city';
 import Footer from '~/components/starter/footer/footer';
 import Header from '~/components/starter/header/header';
 
-import { initializeDb } from '~/database/planetscale';
+import { getDb, initializeDb } from '~/database/planetscale';
 import styles from './styles.css?inline';
+
+import {randAccessory, randAnimal, randColor} from "@ngneat/falso"
 
 export const useServerTimeLoader = routeLoader$(() => {
   return {
@@ -25,15 +27,24 @@ export const onRequest: RequestHandler = async (event) => {
     username: dbUsername,
     password: dbPassword,
   });
-  event.request.headers.forEach((value, key) => {
-    console.log(`${key} => ${value}`);
-  })
-  //@ts-ignore
-  console.log('platform req', event.platform.req);
-  //@ts-ignore
-  console.log('platform ip', event.platform.ip);
-  // const db = getDb();
+  const headers = event.request.headers;
+  const ip = event.url.hostname === "localhost" ? "dev" : headers.get("x-forwarded-for") || headers.get("x-real-ip") || headers.get("x-vercel-proxied-for") ;
+  const db = getDb();
+  if (ip) { 
+    const user = await db.selectFrom("users").selectAll().where("ip", "=", ip).executeTakeFirst();
+    if (!user) { 
+      const nickname = spacedToTitleCase(randColor()) + spacedToTitleCase(randAnimal()) + spacedToTitleCase(randAccessory())
+      db.insertInto("users").values({ ip, last_active: new Date(), nickname }).execute();
+    } else { 
+      db.updateTable("users").set({ last_active: new Date() }).where("id", "=", user.id).execute();
+    }
+  }
 
+}
+
+
+function spacedToTitleCase(str: string) { 
+  return str.split(" ").map((word) => word[0].toUpperCase() + word.slice(1)).join("");
 }
 
 export default component$(() => {
