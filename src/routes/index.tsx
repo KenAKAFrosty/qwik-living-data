@@ -306,7 +306,6 @@ export const useWeatherLoader = routeLoader$(async (event) => getWeather.call(ev
 export const useWeather = livingData(getWeather);
   
 export const getCityBikes = server$(async function() {
-    console.log('Firing get city bikes')
     const baseUrl = "https://api.citybik.es/v2/networks/";
     const emptySlotsByCity: {[Key in keyof typeof latLonByCity]?: string} = {};
     await Promise.all(Object.keys(latLonByCity).map(async (_city) => {  
