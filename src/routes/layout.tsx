@@ -15,7 +15,7 @@ export const useServerTimeLoader = routeLoader$(() => {
   };
 });
 
-export const onRequest: RequestHandler = async (event) => { 
+export const useDbSetup =  routeLoader$(async (event) => { 
   const dbHost = event.env.get("DATABASE_HOST");
   const dbUsername = event.env.get("DATABASE_USERNAME");
   const dbPassword = event.env.get("DATABASE_PASSWORD");
@@ -34,13 +34,12 @@ export const onRequest: RequestHandler = async (event) => {
     const user = await db.selectFrom("users").selectAll().where("ip", "=", ip).executeTakeFirst();
     if (!user) { 
       const nickname = spacedToTitleCase(randColor()) + spacedToTitleCase(randAnimal()) + spacedToTitleCase(randAccessory())
-      db.insertInto("users").values({ ip, last_active: new Date(), nickname }).execute();
+      await db.insertInto("users").values({ ip, last_active: new Date(), nickname }).execute();
     } else { 
-      db.updateTable("users").set({ last_active: new Date() }).where("id", "=", user.id).execute();
+      await db.updateTable("users").set({ last_active: new Date() }).where("id", "=", user.id).execute();
     }
   }
-
-}
+})
 
 
 function spacedToTitleCase(str: string) { 
@@ -49,6 +48,7 @@ function spacedToTitleCase(str: string) {
 
 export default component$(() => {
   useStyles$(styles);
+  useDbSetup();
   return (
     <>
       <Header />
