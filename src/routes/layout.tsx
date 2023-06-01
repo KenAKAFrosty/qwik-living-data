@@ -28,7 +28,9 @@ export const onRequest: RequestHandler = async (event) => {
   event.request.headers.forEach((value, key) => {
     console.log(`${key} => ${value}`);
   })
+  //@ts-ignore
   console.log('platform req', event.platform.req);
+  //@ts-ignore
   console.log('platform ip', event.platform.ip);
   // const db = getDb();
 
