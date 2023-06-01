@@ -330,7 +330,7 @@ export const useCityBikes = livingData(getCityBikes);
 export const WeatherAndBikes = component$(() => {
     const weather = useWeather({ 
         startingValue: useWeatherLoader().value,
-        interval: 20000
+        interval: null
     });
     const cityBikes = useCityBikes({ 
         interval: 10000,
@@ -397,7 +397,7 @@ export const WeatherAndBikes = component$(() => {
                         {weather.signal.value[city as keyof typeof latLonByCity].main.temp}°C
                     </p>}
                     <hr />
-                    <h4>CityBike Empty Slots</h4>
+                    <h4>Bicycles currently shared</h4>
                     <p class="bikes">{cityBikes.signal.value[city as keyof typeof latLonByCity]}</p>
                 </div>
             })}
