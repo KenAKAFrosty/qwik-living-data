@@ -334,7 +334,7 @@ export const dataFeeder = server$(async function* (options: {
         options.invocationId
     );
     const providedInterval = options.interval || retrievedDefaultInterval;
-    if (!providedInterval) {
+    if (providedInterval === null) {
         return;
     }
 

@@ -11,6 +11,14 @@ export interface Employees {
   email: string | null;
 }
 
+export interface Users {
+  id: Generated<number>;
+  ip: string;
+  nickname: string | null;
+  last_active: Date | null;
+}
+
 export interface DB {
   employees: Employees;
+  users: Users;
 }

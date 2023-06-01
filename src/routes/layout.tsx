@@ -24,7 +24,11 @@ export const onRequest: RequestHandler = async (event) => {
     host: dbHost,
     username: dbUsername,
     password: dbPassword,
-  })
+  });
+  console.log('headers', event.request.headers);
+  console.log('platform', event.platform );
+  // const db = getDb();
+
 }
 
 export default component$(() => {

@@ -1,6 +1,6 @@
 import { Kysely } from "kysely";
 import { PlanetScaleDialect } from "kysely-planetscale";
-import { type DB } from "./introspected-types";
+import { type DB } from "./planetscale-types";
 
 let db: Kysely<DB>;
 

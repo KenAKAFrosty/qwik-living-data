@@ -19,7 +19,7 @@
     "lint": "eslint \"src/**/*.ts*\"",
     "preview": "qwik build preview && vite preview --open",
     "start": "vite --open --mode ssr",
-    "typegen.database": "kysely-codegen --out-file src/database/introspected-types.d.ts",
+    "typegen.planetscale": "kysely-codegen --out-file src/database/planetscale-types.d.ts",
     "qwik": "qwik"
   },
   "devDependencies": {
