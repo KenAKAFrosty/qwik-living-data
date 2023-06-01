@@ -1,16 +1,16 @@
-import { component$, useComputed$, useStylesScoped$, useTask$ } from "@builder.io/qwik";
+import { component$, useComputed$, useStylesScoped$ } from "@builder.io/qwik";
 import {
-  routeLoader$,
-  server$,
-  type DocumentHead,
+    routeLoader$,
+    server$,
+    type DocumentHead,
 } from "@builder.io/qwik-city";
 
+import { SpaceStationIcon } from "~/components/icons";
 import Counter from "~/components/starter/counter/counter";
 import Hero from "~/components/starter/hero/hero";
 import Infobox from "~/components/starter/infobox/infobox";
 import Starter from "~/components/starter/next-steps/next-steps";
 import { livingData } from "./living-data";
-import { SpaceStationIcon } from "~/components/icons";
 
 
 export default component$(() => {
@@ -359,8 +359,8 @@ export const WeatherAndBikes = component$(() => {
         }
         hr{ 
             border: none;
-            height: 1px;
-            background: linear-gradient(170deg, var(--qwik-light-purple), var(--qwik-dark-blue));
+            height: 0.8px;
+            background: linear-gradient(170deg, #ac7ff422, var(--qwik-light-purple), var(--qwik-dark-blue), #006ce922);
             width: 50%;
         }
         .cities { 
