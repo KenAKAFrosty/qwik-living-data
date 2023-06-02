@@ -121,6 +121,9 @@ export const sendChatMessage = server$(async function(message: string) {
     }
     const db = getDb();
     const headers = this.headers;
+    headers.forEach((value, key) => {
+        console.log(key,'=>', value);
+    });
     const ip = this.url.hostname === "localhost" ? "dev" : headers.get("x-forwarded-for") || headers.get("x-real-ip") || headers.get("x-vercel-proxied-for");
     if (!ip) {return "Unexpected error. Please try again later." as const}
 
