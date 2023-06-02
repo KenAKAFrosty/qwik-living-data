@@ -89,7 +89,7 @@ textarea {
   height: 30px;
   flex-grow: 1;
   resize: none;
-  margin-top: 6px;
+  margin-top: 3px;
   color: white;
   background: var(--qwik-dark-purple);
   border: none;
