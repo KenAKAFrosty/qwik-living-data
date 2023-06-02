@@ -6,7 +6,7 @@ import {
 } from "@builder.io/qwik-city";
 
 import { SpaceStationIcon } from "~/components/icons";
-import { Chat, getRecentChatMessages } from "~/components/living-data-examples/chat";
+import { Chat, getOnlineUsersCount, getRecentChatMessages } from "~/components/living-data-examples/chat";
 import { WeatherAndBikes, getWeather } from "~/components/living-data-examples/weather-and-bikes";
 import Counter from "~/components/starter/counter/counter";
 import Hero from "~/components/starter/hero/hero";
@@ -17,13 +17,15 @@ import { livingData } from "../living-data/living-data";
 
 export const useWeatherLoader = routeLoader$((event) => getWeather.call(event));
 export const useChatMessagesLoader = routeLoader$((event) => getRecentChatMessages.call(event));
+export const useOnlineUserCountLoader = routeLoader$((event) => getOnlineUsersCount.call(event));
 export default component$(() => {
   const loadedWeather = useWeatherLoader();
   const loadedChatMessages = useChatMessagesLoader();
+  const loadedOnlineUserCount = useOnlineUserCountLoader();
   return (
     <>
       <Iss />
-      <Chat startingMessages={loadedChatMessages.value} />
+      <Chat startingMessages={loadedChatMessages.value} startingOnlineUserCount={loadedOnlineUserCount.value} />
       <WeatherAndBikes startingWeather={loadedWeather.value} />
       <Hero />
 

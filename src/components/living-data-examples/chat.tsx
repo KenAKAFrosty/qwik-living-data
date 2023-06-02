@@ -1,11 +1,11 @@
-import { $, component$, useSignal, useStylesScoped$, useTask$ } from "@builder.io/qwik";
-import { server$ } from "@builder.io/qwik-city";
+import { $, component$, useSignal, useStylesScoped$, useTask$, useVisibleTask$ } from "@builder.io/qwik";
+import { type RequestEventBase, server$ } from "@builder.io/qwik-city";
 import { sql, type Selectable } from "kysely";
 import { getDb } from "~/database/planetscale";
 import type { DB } from "~/database/planetscale-types";
 import { livingData } from "~/living-data/living-data";
 import { useDbSetupAndGetUsername } from "~/routes/layout";
-import { SimpleUserIcon } from "../icons";
+import { SimpleMultipleUsersIcon, SimpleUserIcon } from "../icons";
 import styles from "./chat.css?inline"
 
 
@@ -20,19 +20,39 @@ export const getRecentChatMessages = server$(async function() {
             .execute();
 })
 
+
+export const getOnlineUsersCount = server$(async function() { 
+    const db = getDb();
+    const now = new Date();
+    const tenSecondsAgo = new Date(now.getTime() - 10 * 1000);
+    const onlineUsers = await db
+                            .selectFrom("users")
+                            .select(sql<number>`COUNT(*)`.as("count"))
+                            .where("last_active", ">", tenSecondsAgo)
+                            .executeTakeFirstOrThrow();
+    return Number(onlineUsers.count);
+});
+
+
 export const useChatMessages = livingData(getRecentChatMessages);
+export const useOnlineUserCount = livingData(getOnlineUsersCount)
 
 export const Chat = component$((props: { 
     startingMessages: Array<
         Omit<Selectable<DB["chat_messages"]>, "id" | "ip">
         & Pick<Selectable<DB["users"]>, "nickname">
-    >
+    >,
+    startingOnlineUserCount: number,
 }) => {
 
   useStylesScoped$(styles);
   const chatMessages = useChatMessages({ 
       startingValue: props.startingMessages,
       interval: 120
+  });
+  const onlineUserCount = useOnlineUserCount({
+        startingValue: props.startingOnlineUserCount,
+        interval: 1000
   })
   const username = useDbSetupAndGetUsername();
   const currentMessage = useSignal("");
@@ -47,7 +67,13 @@ export const Chat = component$((props: {
         }, 5000) as unknown as number
     }
   });
-
+  
+  useVisibleTask$(({cleanup})=> { 
+    const intervalTimer = setInterval(()=> {
+        heartbeat()
+    }, 5000)
+    cleanup(()=>  clearInterval(intervalTimer));
+  })
 
 
   const submitMessage = $(()=> { 
@@ -64,9 +90,11 @@ export const Chat = component$((props: {
   });
 
   const messagesRef = useSignal<Element>();
+
   return (
     <section>
       <h2>Have a Chat</h2>
+      <h3><SimpleMultipleUsersIcon />{onlineUserCount.signal.value} {`User`}{onlineUserCount.signal.value === 1 ? '' :'s'}{` Online`}</h3>
       <div class="chatbox">
 
         <div class="entry">
@@ -117,13 +145,23 @@ export const Chat = component$((props: {
 });
 
 
+export const heartbeat = server$(async function() {
+    const ip = getIp(this);
+    await  getDb().updateTable("users").set({ last_active:  new Date() }).where("ip", "=", ip).execute();
+ })
+
+
+export function getIp(event: RequestEventBase) { 
+    const headers = event.request.headers;
+    return event.url.hostname === "localhost" ? "dev" : headers.get("x-forwarded-for") || headers.get("x-real-ip") || headers.get("x-vercel-proxied-for");
+}
+
 export const sendChatMessage = server$(async function(message: string) {
     if (message.length > 300) { 
         return "Message too long; max 300 characters." as const;
     }
     const db = getDb();
-    const headers = this.request.headers;
-    const ip = this.url.hostname === "localhost" ? "dev" : headers.get("x-forwarded-for") || headers.get("x-real-ip") || headers.get("x-vercel-proxied-for");
+    const ip = getIp(this);
     if (!ip) {return "Unexpected error. Please try again later." as const}
 
     const now = new Date();
@@ -136,13 +174,14 @@ export const sendChatMessage = server$(async function(message: string) {
                                     .executeTakeFirstOrThrow();
 
    const MAX_ALLOWED_MESSAGES_PER_MINUTE = 10;
-    if (recentMessagesFromThisIp.count > MAX_ALLOWED_MESSAGES_PER_MINUTE) {
+    if (Number(recentMessagesFromThisIp.count) > MAX_ALLOWED_MESSAGES_PER_MINUTE) {
         return "Too many messages in a short period." as const;
     }
 
     await db.insertInto("chat_messages").values({message_text: message, ip}).execute();
     return "Success" as const;
 });
+
 
 
 function stringToDarkColor(str: string) {
