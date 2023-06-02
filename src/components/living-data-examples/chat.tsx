@@ -24,11 +24,11 @@ export const getRecentChatMessages = server$(async function() {
 export const getOnlineUsersCount = server$(async function() { 
     const db = getDb();
     const now = new Date();
-    const twoSecondsAgo = new Date(now.getTime() - 2 * 1000);
+    const threeSecondsAgo = new Date(now.getTime() - 3 * 1000);
     const onlineUsers = await db
                             .selectFrom("users")
                             .select(sql<number>`COUNT(*)`.as("count"))
-                            .where("last_active", ">", twoSecondsAgo)
+                            .where("last_active", ">", threeSecondsAgo)
                             .executeTakeFirstOrThrow();
     return Number(onlineUsers.count);
 });
