@@ -32,6 +32,7 @@ export const Chat = component$((props: {
   useStylesScoped$(styles);
   const chatMessages = useChatMessages({ 
       startingValue: props.startingMessages,
+      interval: 333
   })
   const username = useDbSetupAndGetUsername();
   const currentMessage = useSignal("");
