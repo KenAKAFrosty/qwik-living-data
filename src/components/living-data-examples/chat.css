@@ -1,0 +1,128 @@
+section {
+  background: var(--qwik-light-purple);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px;
+  gap: 16px;
+}
+
+.chatbox {
+  height: 600px;
+  overflow: hidden;
+  background: white;
+  width: 90%;
+  max-width: 50rem;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.messages {
+  flex-grow: 1;
+  color: black;
+  width: 100%;
+  overflow-y: scroll;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.messages::-webkit-scrollbar {
+  display: none;
+}
+.message {
+  display: flex;
+  flex-direction: column;
+  margin: 6px;
+  margin-bottom: 35px;
+  gap: 10px;
+}
+.messages .context {
+  display: flex;
+  align-items: center;
+  align-self: flex-start;
+}
+.messages .name-and-time {
+  display: flex;
+  flex-direction: column;
+}
+.messages .time {
+  font-size: 12px;
+}
+.messages .user-icon {
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+}
+.messages .name {
+  font-weight: bold;
+  margin-right: 5px;
+}
+.messages .message-text {
+  min-width: 150px;
+}
+.messages .text-holder { 
+    display: flex;
+    height: 100%;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+.entry {
+  width: 100%;
+  background: var(--qwik-dark-purple);
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  padding-left: 10px;
+}
+.entry hr {
+  width: 1px;
+  border: none;
+  height: 30px;
+  background: var(--qwik-light-purple);
+}
+textarea {
+  font-size: 16px;
+  font-family: inherit;
+  height: 30px;
+  flex-grow: 1;
+  resize: none;
+  margin-top: 6px;
+  color: white;
+  background: var(--qwik-dark-purple);
+  border: none;
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.error {
+  height: 16px;
+  margin-bottom: -20px;
+  background: #18b6f699;
+  color: black;
+  width: 100%;
+  padding: 4px;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+  transition: opacity 500ms;
+}
+textarea:focus {
+  outline: none;
+}
+textarea::placeholder {
+  color: var(--qwik-light-purple);
+}
+textarea::-webkit-scrollbar {
+  display: none;
+}
+
+@media (max-width: 850px) {
+  .entry hr {
+    display: none;
+  }
+  textarea {
+    width: 90%;
+  }
+}

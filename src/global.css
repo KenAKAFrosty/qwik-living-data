@@ -54,3 +54,11 @@ body {
   padding: 0;
   line-height: inherit;
 }
+
+.bold { 
+  font-weight: bold;
+}
+
+.invisible { 
+  opacity: 0;
+}

@@ -1,5 +1,5 @@
 import { component$, Slot, useStyles$ } from '@builder.io/qwik';
-import { routeLoader$, type RequestHandler } from '@builder.io/qwik-city';
+import { routeLoader$ } from '@builder.io/qwik-city';
 
 import Footer from '~/components/starter/footer/footer';
 import Header from '~/components/starter/header/header';
@@ -7,7 +7,7 @@ import Header from '~/components/starter/header/header';
 import { getDb, initializeDb } from '~/database/planetscale';
 import styles from './styles.css?inline';
 
-import {randAccessory, randAnimal, randColor} from "@ngneat/falso"
+import { randAccessory, randAnimal, randColor } from "@ngneat/falso";
 
 export const useServerTimeLoader = routeLoader$(() => {
   return {
@@ -15,7 +15,7 @@ export const useServerTimeLoader = routeLoader$(() => {
   };
 });
 
-export const useDbSetup =  routeLoader$(async (event) => { 
+export const useDbSetupAndGetUsername =  routeLoader$(async (event) => { 
   const dbHost = event.env.get("DATABASE_HOST");
   const dbUsername = event.env.get("DATABASE_USERNAME");
   const dbPassword = event.env.get("DATABASE_PASSWORD");
@@ -32,11 +32,15 @@ export const useDbSetup =  routeLoader$(async (event) => {
   const db = getDb();
   if (ip) { 
     const user = await db.selectFrom("users").selectAll().where("ip", "=", ip).executeTakeFirst();
+    const now = new Date();
     if (!user) { 
       const nickname = spacedToTitleCase(randColor()) + spacedToTitleCase(randAnimal()) + spacedToTitleCase(randAccessory())
-      await db.insertInto("users").values({ ip, last_active: new Date(), nickname }).execute();
+      const newUser = { ip, last_active: now, nickname }
+      await db.insertInto("users").values(newUser).execute();
+      return nickname;
     } else { 
-      await db.updateTable("users").set({ last_active: new Date() }).where("id", "=", user.id).execute();
+      await db.updateTable("users").set({ last_active: now }).where("id", "=", user.id).execute();
+      return user.nickname;
     }
   }
 })
@@ -48,7 +52,7 @@ function spacedToTitleCase(str: string) {
 
 export default component$(() => {
   useStyles$(styles);
-  useDbSetup();
+  useDbSetupAndGetUsername();
   return (
     <>
       <Header />

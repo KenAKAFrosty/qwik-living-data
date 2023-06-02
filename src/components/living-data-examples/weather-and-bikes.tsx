@@ -72,7 +72,7 @@ export const WeatherAndBikes = component$((props: {
 }) => {
     const weather = useWeather({
       startingValue: props.startingWeather,
-      interval: null,
+      interval: 30000,
     });
     const cityBikes = useCityBikes({
       interval: 10000,
