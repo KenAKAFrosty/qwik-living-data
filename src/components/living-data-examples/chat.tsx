@@ -77,16 +77,16 @@ export const Chat = component$((props: {
   })
 
 
-  const submitMessage = $(()=> { 
+  const submitMessage = $(async ()=> { 
     if (currentMessage.value) { 
       const message = currentMessage.value.endsWith("\n") ? currentMessage.value.slice(0, -1) : currentMessage.value;
-      sendChatMessage(message).then(result => { 
+      currentMessage.value = "";
+      await sendChatMessage(message).then(result => { 
         if (result !== "Success") { 
             currentMessage.value = message; //don't want to swallow the message, give a chance to retry.
             error.value = result;
         }
       });
-      currentMessage.value = "";
     }
   });
 
