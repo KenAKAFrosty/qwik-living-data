@@ -1,6 +1,7 @@
 import { Kysely } from "kysely";
 import { PlanetScaleDialect } from "kysely-planetscale";
 import { type DB } from "./planetscale-types";
+import { RequestEventBase } from "@builder.io/qwik-city";
 
 let db: Kysely<DB>;
 
@@ -21,11 +22,25 @@ export function initializeDb(connectionInfo: {
   }
 }
 
-export function getDb() {
+export function getDb(event?: RequestEventBase) {
   if (!db) {
-    throw new Error(
-      "DB hasn't been initialized yet."
-    );
+    if (!event) {
+      throw new Error("DB hasn't been initialized yet.");
+    }
+    const dbHost = event.env.get("DATABASE_HOST");
+    const dbUsername = event.env.get("DATABASE_USERNAME");
+    const dbPassword = event.env.get("DATABASE_PASSWORD");
+    if (!dbHost || !dbUsername || !dbPassword) {
+      throw new Error(
+        "Provided request event to initialize database, but it's missing database credentials"
+      );
+    }
+    const connectionInfo = {
+      host: dbHost,
+      username: dbUsername,
+      password: dbPassword,
+    };
+    initializeDb(connectionInfo);
   }
 
   return db;

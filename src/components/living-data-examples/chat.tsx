@@ -4,14 +4,14 @@ import { sql, type Selectable } from "kysely";
 import { getDb } from "~/database/planetscale";
 import type { DB } from "~/database/planetscale-types";
 import { livingData } from "~/living-data/living-data";
-import { useDbSetupAndGetUsername } from "~/routes/layout";
+import { useUsername } from "~/routes/layout";
 import { SimpleMultipleUsersIcon, SimpleUserIcon } from "../icons";
 import styles from "./chat.css?inline"
 
 
 
 export const getRecentChatMessages = server$(async function() {
-    return getDb()
+    return getDb(this)
             .selectFrom("chat_messages")
             .innerJoin("users", "chat_messages.ip", "users.ip")
             .select(["chat_messages.message_text", "chat_messages.timestamp", "users.nickname"])
@@ -22,7 +22,7 @@ export const getRecentChatMessages = server$(async function() {
 
 
 export const getOnlineUsersCount = server$(async function() { 
-    const db = getDb();
+    const db = getDb(this);
     const now = new Date();
     const threeSecondsAgo = new Date(now.getTime() - 3 * 1000);
     const onlineUsers = await db
@@ -54,7 +54,7 @@ export const Chat = component$((props: {
         startingValue: props.startingOnlineUserCount,
         interval: 1000
   })
-  const username = useDbSetupAndGetUsername();
+  const username = useUsername();
   const currentMessage = useSignal("");
   const error = useSignal("");
   const errorRemovalTimeout = useSignal(-1)
@@ -148,7 +148,7 @@ export const Chat = component$((props: {
 
 export const heartbeat = server$(async function() {
     const ip = getIp(this);
-    await  getDb().updateTable("users").set({ last_active:  new Date() }).where("ip", "=", ip).execute();
+    await  getDb(this).updateTable("users").set({ last_active:  new Date() }).where("ip", "=", ip).execute();
  })
 
 
@@ -161,7 +161,7 @@ export const sendChatMessage = server$(async function(message: string) {
     if (message.length > 300) { 
         return "Message too long; max 300 characters." as const;
     }
-    const db = getDb();
+    const db = getDb(this);
     const ip = getIp(this);
     if (!ip) {return "Unexpected error. Please try again later." as const}
 
