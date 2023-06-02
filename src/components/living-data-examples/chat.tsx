@@ -99,7 +99,7 @@ export const Chat = component$((props: {
       <div class="chatbox">
 
         <div class="entry">
-          <SimpleUserIcon /><span>{username}</span><hr /> 
+          <SimpleUserIcon /><span>{username}</span><hr />
           <textarea 
             placeholder="Say hi..." 
             value={currentMessage.value} 
