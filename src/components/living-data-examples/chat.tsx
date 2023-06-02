@@ -69,9 +69,10 @@ export const Chat = component$((props: {
   });
   
   useVisibleTask$(({cleanup})=> { 
+    heartbeat();
     const intervalTimer = setInterval(()=> {
         heartbeat()
-    }, 5000)
+    }, 2000)
     cleanup(()=>  clearInterval(intervalTimer));
   })
 
