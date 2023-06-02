@@ -22,7 +22,7 @@ export function initializeDb(connectionInfo: {
   }
 }
 
-export function getDb(event?: RequestEventBase) {
+export function getDb(event: RequestEventBase) {
   if (!db) {
     if (!event) {
       throw new Error("DB hasn't been initialized yet.");

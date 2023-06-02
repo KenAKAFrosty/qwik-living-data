@@ -18,7 +18,7 @@ export const useServerTimeLoader = routeLoader$(() => {
 export const useUsername =  routeLoader$(async (event) => { 
   const headers = event.request.headers;
   const ip = event.url.hostname === "localhost" ? "dev" : headers.get("x-forwarded-for") || headers.get("x-real-ip") || headers.get("x-vercel-proxied-for") ;
-  const db = getDb(this);
+  const db = getDb(event);
   if (ip) { 
     const user = await db.selectFrom("users").selectAll().where("ip", "=", ip).executeTakeFirst();
     const now = new Date();
