@@ -153,7 +153,7 @@ function stringToDarkColor(str: string) {
     let color = '';
     for (let i = 0; i < 3; i++) {
         let value = Math.abs((hash >> (i * 8)) & 0xFF);
-        value = Math.floor(value / 2); // This ensures the color is always somewhat dark
+        value = Math.floor(value * 0.6); // This ensures the color is always somewhat dark
         color += ('00' + value.toString(16)).slice(-2);
     }
 
