@@ -24,11 +24,11 @@ export const getRecentChatMessages = server$(async function() {
 export const getOnlineUsersCount = server$(async function() { 
     const db = getDb();
     const now = new Date();
-    const tenSecondsAgo = new Date(now.getTime() - 10 * 1000);
+    const twoSecondsAgo = new Date(now.getTime() - 2 * 1000);
     const onlineUsers = await db
                             .selectFrom("users")
                             .select(sql<number>`COUNT(*)`.as("count"))
-                            .where("last_active", ">", tenSecondsAgo)
+                            .where("last_active", ">", twoSecondsAgo)
                             .executeTakeFirstOrThrow();
     return Number(onlineUsers.count);
 });
@@ -64,7 +64,7 @@ export const Chat = component$((props: {
     if (error.value) { 
         errorRemovalTimeout.value = setTimeout(()=> { 
             error.value = "";
-        }, 5000) as unknown as number
+        }, 1000) as unknown as number
     }
   });
   
