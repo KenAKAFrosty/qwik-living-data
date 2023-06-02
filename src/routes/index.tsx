@@ -1,23 +1,82 @@
 import { component$, useComputed$, useStylesScoped$ } from "@builder.io/qwik";
 import {
-    routeLoader$,
-    server$,
-    type DocumentHead,
+  routeLoader$,
+  server$,
+  type DocumentHead,
+//   type RequestHandler,
 } from "@builder.io/qwik-city";
 
 import { SpaceStationIcon } from "~/components/icons";
-import { Chat, getOnlineUsersCount, getRecentChatMessages } from "~/components/living-data-examples/chat";
-import { WeatherAndBikes, getWeather } from "~/components/living-data-examples/weather-and-bikes";
+import {
+  Chat,
+  getOnlineUsersCount,
+  getRecentChatMessages,
+} from "~/components/living-data-examples/chat";
+import {
+  WeatherAndBikes,
+  getWeather,
+} from "~/components/living-data-examples/weather-and-bikes";
 import Counter from "~/components/starter/counter/counter";
 import Hero from "~/components/starter/hero/hero";
 import Infobox from "~/components/starter/infobox/infobox";
 import { livingData } from "../living-data/living-data";
+// import { XMLParser } from "fast-xml-parser";
 
-
+// export const onGet: RequestHandler = async (event) => {
+//   event;
+//   const parser = new XMLParser({
+//     ignoreAttributes: false,
+//   });
+//   const metroData = await fetch(
+//     "https://retro.umoiq.com/service/publicXMLFeed?command=agencyList"
+//   ).then((r) => r.text());
+//   const json = parser.parse(metroData);
+//   const agencyTags = json.body.agency.map(
+//     (a: {
+//       "@_tag": string;
+//       "@_title": string;
+//       "@_regionTitle": string;
+//       "@_shortTitle"?: string;
+//     }) => a["@_tag"]
+//   );
+//   console.log(agencyTags);
+//   const routeTags: Array<{
+//     agency: string;
+//     route: string;
+//   }> = [];
+//   const routes = Promise.all(
+//     agencyTags.map(async (tag) => {
+//       const endpoint = `https://retro.umoiq.com/service/publicXMLFeed?command=routeList&a=${tag}`;
+//       const thisResponse = await fetch(endpoint)
+//         .then((r) => r.text())
+//         .then((r) => parser.parse(r));
+//       console.log(thisResponse);
+//       const theseRoutes = thisResponse.body.route;
+//       console.log(theseRoutes);
+//       const theseRouteTags = !Array.isArray(theseRoutes)
+//         ? [theseRoutes["@_tag"]]
+//         : theseRoutes.map(
+//             (r: { "@_tag": string; "@_title": string }) => r["@_tag"]
+//           );
+//       console.log(theseRouteTags);
+//       routeTags.push(
+//         ...theseRouteTags.map((routeTag) => ({
+//           agency: tag,
+//           route: routeTag
+//         }))
+//       );
+//       console.log(routeTags);
+//     })
+//   );
+// };
 
 export const useWeatherLoader = routeLoader$((event) => getWeather.call(event));
-export const useChatMessagesLoader = routeLoader$((event) => getRecentChatMessages.call(event));
-export const useOnlineUserCountLoader = routeLoader$((event) => getOnlineUsersCount.call(event));
+export const useChatMessagesLoader = routeLoader$((event) =>
+  getRecentChatMessages.call(event)
+);
+export const useOnlineUserCountLoader = routeLoader$((event) =>
+  getOnlineUsersCount.call(event)
+);
 export default component$(() => {
   const loadedWeather = useWeatherLoader();
   const loadedChatMessages = useChatMessagesLoader();
@@ -25,7 +84,10 @@ export default component$(() => {
   return (
     <>
       <Iss />
-      <Chat startingMessages={loadedChatMessages.value} startingOnlineUserCount={loadedOnlineUserCount.value} />
+      <Chat
+        startingMessages={loadedChatMessages.value}
+        startingOnlineUserCount={loadedOnlineUserCount.value}
+      />
       <WeatherAndBikes startingWeather={loadedWeather.value} />
       <Hero />
 
@@ -132,7 +194,9 @@ export const getIssLocation = server$(async function () {
   };
 });
 
-export const useIssLocationLoader = routeLoader$((event) =>  getIssLocation.call(event));
+export const useIssLocationLoader = routeLoader$((event) =>
+  getIssLocation.call(event)
+);
 
 export const useIssLocation = livingData(getIssLocation);
 
@@ -212,7 +276,6 @@ export const Iss = component$(() => {
     </>
   );
 });
-
 
 export const head: DocumentHead = (event) => {
   const iss = event.resolveValue(useIssLocationLoader);

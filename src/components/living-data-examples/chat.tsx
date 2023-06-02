@@ -107,9 +107,9 @@ export const Chat = component$((props: {
                 const target = event.target as HTMLTextAreaElement;
                 currentMessage.value = target.value;
             }} 
-            onKeyDown$={(event)=> { 
+            onKeyDown$={async (event)=> { 
                 if (event.key === "Enter" && !event.shiftKey) { 
-                    submitMessage();
+                    await submitMessage();
                     currentMessage.value = "";
                 }
             }}

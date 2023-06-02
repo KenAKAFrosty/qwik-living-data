@@ -1,7 +1,7 @@
 import { Kysely } from "kysely";
 import { PlanetScaleDialect } from "kysely-planetscale";
 import { type DB } from "./planetscale-types";
-import { RequestEventBase } from "@builder.io/qwik-city";
+import { type RequestEventBase } from "@builder.io/qwik-city";
 
 let db: Kysely<DB>;
 
