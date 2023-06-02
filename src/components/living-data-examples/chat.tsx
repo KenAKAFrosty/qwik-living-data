@@ -81,6 +81,7 @@ export const Chat = component$((props: {
             onKeyDown$={(event)=> { 
                 if (event.key === "Enter" && !event.shiftKey) { 
                     submitMessage();
+                    currentMessage.value = "";
                 }
             }}
           />
