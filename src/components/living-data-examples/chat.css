@@ -84,7 +84,7 @@ section {
   background: var(--qwik-light-purple);
 }
 textarea {
-  font-size: 16px;
+  font-size: 20px;
   font-family: inherit;
   height: 30px;
   flex-grow: 1;
