@@ -72,7 +72,7 @@ export const Chat = component$((props: {
     heartbeat();
     const intervalTimer = setInterval(()=> {
         heartbeat()
-    }, 2000)
+    }, 1000)
     cleanup(()=>  clearInterval(intervalTimer));
   })
 
