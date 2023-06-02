@@ -3,7 +3,6 @@ import {
   routeLoader$,
   server$,
   type DocumentHead,
-//   type RequestHandler,
 } from "@builder.io/qwik-city";
 
 import { SpaceStationIcon } from "~/components/icons";
