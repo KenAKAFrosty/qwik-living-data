@@ -120,10 +120,7 @@ export const sendChatMessage = server$(async function(message: string) {
         return "Message too long; max 300 characters." as const;
     }
     const db = getDb();
-    const headers = this.headers;
-    headers.forEach((value, key) => {
-        console.log(key,'=>', value);
-    });
+    const headers = this.request.headers;
     const ip = this.url.hostname === "localhost" ? "dev" : headers.get("x-forwarded-for") || headers.get("x-real-ip") || headers.get("x-vercel-proxied-for");
     if (!ip) {return "Unexpected error. Please try again later." as const}
 
