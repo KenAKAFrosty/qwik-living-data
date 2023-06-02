@@ -253,17 +253,33 @@ export function livingData<
         });
 
         useVisibleTask$(({ cleanup }) => {
+            function saveResources() { 
+                if (document.visibilityState === "hidden") { 
+                    pause();
+                }
+                if (document.visibilityState === "visible") { 
+                    refresh();
+                }
+            }
+
+            document.addEventListener("visibilitychange", saveResources);
             window.addEventListener("focus", refresh);
             window.addEventListener("online", refresh);
+
             cleanup(() => { 
-                window.removeEventListener("focus", refresh);
+                document.removeEventListener("visibilitychange", saveResources);
                 window.removeEventListener("online", refresh);
+                window.removeEventListener("focus", refresh); 
+                //focus and visibility change to visible will likely overlap.
+                //would be nice to account for that and only refresh once
+
                 pause();
             });
             retryOnFailure(connectAndListen);
         });
 
 
+        
         //For now, the intended behavior is that when someone updates to a new interval, it'll start from that point.
         //e.g., I set interval to 4000ms right now, then the next time it fires is 4000ms from right now.
 
@@ -274,7 +290,6 @@ export function livingData<
         //By instead resetting it so that it will always be the new interval value from right now when the interval is updated,
         //It keeps the behavior consistent on expectations. 
         //If the one updating the interval always wants to get fresh values right away, then they can just refresh along side the interval update.
-
         useVisibleTask$(({ track }) => {
             track(() => shouldClientSidePoll.value);
             async function clientSidePolling() {
