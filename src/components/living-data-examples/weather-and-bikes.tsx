@@ -48,14 +48,13 @@ export const getCityBikes = server$(async function () {
 
 
 export const getWeather = server$(async function () {
-    const key = this.env.get("OPEN_WEATHER_API_KEY");
     const weatherByCity: { [Key in keyof typeof latLonByCity]?: Weather } = {};
     await Promise.all(
       Object.keys(latLonByCity).map(async (_city) => {
         const city = _city as keyof typeof latLonByCity;
         const coords = latLonByCity[city];
         const thisWeather = (await fetch(
-          `https://api.openweathermap.org/data/2.5/weather?lat=${coords.lat}&lon=${coords.lon}&appid=${key}&units=metric`
+          `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current_weather=true`
         ).then((r) => r.json())) as Weather;
         weatherByCity[city] = thisWeather;
       })
@@ -140,7 +139,7 @@ export const WeatherAndBikes = component$((props: {
                 <h3 class="name">{city}</h3>
                 {weather.signal.value[city as keyof typeof latLonByCity] && (
                   <p>
-                    {weather.signal.value[city as keyof typeof latLonByCity].main.temp}°C
+                    {weather.signal.value[city as keyof typeof latLonByCity].current_weather.temperature}°C
                   </p>
                 )}
                 <hr />
@@ -157,49 +156,24 @@ export const WeatherAndBikes = component$((props: {
   });
   
 
-
   
 export type Weather = {
-    coord: {
-      lon: number;
-      lat: number;
-    };
-    weather: {
-      id: number;
-      main: string;
-      description: string;
-      icon: string;
-    }[];
-    base: string;
-    main: {
-      temp: number;
-      feels_like: number;
-      temp_min: number;
-      temp_max: number;
-      pressure: number;
-      humidity: number;
-    };
-    visibility: number;
-    wind: {
-      speed: number;
-      deg: number;
-    };
-    clouds: {
-      all: number;
-    };
-    dt: number;
-    sys: {
-      type: number;
-      id: number;
-      country: string;
-      sunrise: number;
-      sunset: number;
-    };
-    timezone: number;
-    id: number;
-    name: string;
-    cod: number;
+  latitude: number;
+  longitude: number;
+  generationtime_ms: number;
+  utc_offset_seconds: number;
+  timezone: string;
+  timezone_abbreviation: string;
+  elevation: number;
+  current_weather: {
+      temperature: number;
+      windspeed: number;
+      winddirection: number;
+      weathercode: number;
+      is_day: number;
+      time: string;
   };
+}
   
 export type BikesData = {
     network: {
