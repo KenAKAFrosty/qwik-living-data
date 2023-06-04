@@ -60,8 +60,13 @@ export default component$(() => {
 
 
 const test = server$(async function() {
-    const WS = await import("ws");
-    const socky = new WS.WebSocket("wss://ws.postman-echo.com/raw");
+    let socky: any;
+    if (typeof WebSocket === "undefined") {
+        const WS = await import("ws");
+        socky = new WS.WebSocket("wss://ws.postman-echo.com/raw");
+    } else { 
+        socky = new WebSocket("wss://ws.postman-echo.com/raw");
+    }
     console.log(socky);
     const messagePromise = new Promise<string>((resolve) => {
         const listener = (event: any) => {
