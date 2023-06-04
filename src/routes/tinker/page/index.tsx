@@ -6,6 +6,7 @@ import {
   type NoSerialize,
 } from "@builder.io/qwik";
 import { server$ } from "@builder.io/qwik-city";
+import { wait } from "~/living-data/living-data";
 
 export default component$(() => {
   const ws = useSignal<NoSerialize<WebSocket>>();
@@ -49,36 +50,50 @@ export default component$(() => {
           console.log(ws.value?.send(messageSignal.value));
         }}
       ></button>
-      <button onClick$={()=> { 
-        test().then(console.log)
-      }}>
+      <button
+        onClick$={() => {
+          test().then(async (eventStream) => {
+            for await (const message of eventStream) {
+              console.log(message);
+            }
+          });
+        }}
+      >
         serv
       </button>
     </main>
   );
 });
 
+const test = server$(async function* () {
+  let socky: WebSocket;
+  if (typeof WebSocket === "undefined") {
+    const WS = await import("ws");
+    socky = new WS.WebSocket(
+      "wss://ws.postman-echo.com/raw"
+    ) as unknown as WebSocket;
+  } else {
+    socky = new WebSocket("wss://ws.postman-echo.com/raw");
+  }
 
-const test = server$(async function() {
-    let socky: any;
-    if (typeof WebSocket === "undefined") {
-        const WS = await import("ws");
-        socky = new WS.WebSocket("wss://ws.postman-echo.com/raw");
-    } else { 
-        socky = new WebSocket("wss://ws.postman-echo.com/raw");
+  let keepWaiting = true;
+  const messages: string[] = [];
+  socky.addEventListener("message", function (event: any) {
+    messages.push("Message from socket: " + event.data.toString());
+  });
+  socky.addEventListener("close", () => {
+    keepWaiting = false;
+  });
+  socky.addEventListener("open", () => {
+    socky.send(Math.random().toString());
+    setInterval(() => {
+      socky.send(Math.random().toString());
+    }, 2000);
+  });
+  while (keepWaiting) {
+    while (messages.length > 0) {
+      yield messages.shift()!;
     }
-    console.log(socky);
-    const messagePromise = new Promise<string>((resolve) => {
-        const listener = (event: any) => {
-          socky.removeEventListener("message", listener);
-          resolve(event.data.toString());
-        };
-        socky.addEventListener("message", listener);
-      });
-      socky.addEventListener("open", function () {
-        setTimeout(()=> { 
-            socky.send("Hello Server!");
-        }, 1000)
-      });
-    return messagePromise
+    await wait(20);
+  }
 });
