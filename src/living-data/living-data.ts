@@ -370,8 +370,15 @@ export const dataFeeder = server$(async function* (options: {
         if (Date.now() - lastCompleted >= interval) {
             const response = await func.call(this, ...options.args);
             if (!areEqual(response, lastResponse)) {
+                console.log(response);
                 lastResponse = response;
+            // if (typeof response?.[Symbol.iterator] === 'function') {
+            //     for await (const item of response  as AsyncIterable<any>) {
+            //         yield item;
+            //     }
+            //   } else {
                 yield response;
+            //   }
             }
             lastCompleted = Date.now();
         }

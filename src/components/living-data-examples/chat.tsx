@@ -53,7 +53,7 @@ export const Chat = component$((props: {
   useStylesScoped$(styles);
   const chatMessages = useChatMessages({ 
       startingValue: props.startingMessages,
-      interval: 120
+      interval: 180
   });
   const onlineUserCount = useOnlineUserCount({
         startingValue: props.startingOnlineUserCount,
@@ -190,7 +190,7 @@ export const sendChatMessage = server$(async function(message: string) {
 
 
 
-function stringToDarkColor(str: string) {
+export function stringToDarkColor(str: string) {
     let hash = 0;
     for (let i = 0; i < str.length; i++) {
         hash = str.charCodeAt(i) + ((hash << 5) - hash);
@@ -200,7 +200,7 @@ function stringToDarkColor(str: string) {
     for (let i = 0; i < 3; i++) {
         let value = Math.abs((hash >> (i * 8)) & 0xFF);
         value = Math.floor(value * 0.6); // This ensures the color is always somewhat dark
-        color += ('00' + value.toString(16)).slice(-2);
+        color += value.toString(16).padStart(2, '0')
     }
 
     return '#' + color;

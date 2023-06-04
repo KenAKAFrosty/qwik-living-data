@@ -1,5 +1,11 @@
-import { component$ } from "@builder.io/qwik"
 // import {XMLParser} from "fast-xml-parser"
+
+import { type RequestHandler } from "@builder.io/qwik-city";
+
+export const onGet: RequestHandler = async (event) => {
+        
+    event.json(200, {message: "Hello, world!"});
+}
 
 // export const onGet: RequestHandler = async (event) => {
 //   event;
@@ -48,12 +54,3 @@ import { component$ } from "@builder.io/qwik"
 //     })
 //   );
 // };
-
-
-export const Transit = component$(() => {
-    
-
-    return <section>
-
-    </section>
-})
