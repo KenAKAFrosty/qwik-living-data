@@ -1,9 +1,9 @@
 import { component$, useStylesScoped$ } from "@builder.io/qwik";
 import { routeLoader$, server$ } from "@builder.io/qwik-city";
 import { XMLParser } from "fast-xml-parser";
+import { BusIcon } from "~/components/icons";
 import { livingData } from "~/living-data/living-data";
 import { TRANSIT_AGENCIES } from "./transit-routes";
-import { BusFlippedIcon, BusIcon } from "~/components/icons";
 
 export const getVehiclesInfo = server$(async function () {
   const vehicles = await getLiveVehiclesInfo("San Francisco Muni Sandbox", "1");
