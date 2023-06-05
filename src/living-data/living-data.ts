@@ -170,14 +170,25 @@ export function livingData<
         const args = (options?.initialArgs ?? []) as Parameters<UserFunction>;
 
         const currentArgs = useSignal<Parameters<UserFunction>>(args);
-        const currentInterval = useSignal<number | null | undefined>(
-            options?.interval ?? setup?.defaultInterval ?? DEFAULT_INTERVAL
-        );
+
+        let startingInterval: number | null | undefined;
+        if (options?.interval !== undefined) {
+            startingInterval = options.interval;
+        } else if (setup?.defaultInterval !== undefined) {
+            startingInterval = setup.defaultInterval;
+        } else {
+            startingInterval = DEFAULT_INTERVAL;
+        }
+        const currentInterval = useSignal<number | null | undefined>(startingInterval);
         const currentConnection = useSignal<number>(-1);
         const connections = useSignal<number[]>([]);
         const clientOnly =
             setup?.isClientStrategyOnly || options?.intervalStrategy === "client";
         const shouldClientSidePoll = useSignal(clientOnly);
+        const MAX_RETRIES = 5;
+        const RESET_DELAY = 5000;
+        const retryCount = useSignal(0);
+        const retryResetTimeout = useSignal(-1);
 
         const connectAndListen = $(
             async (adjustments?: { skipInitialCall?: boolean }) => {
@@ -205,12 +216,24 @@ export function livingData<
                 let stream = await streamPromise;
                 while (currentConnection.value === thisConnectionId) {
                     const current = await stream.next();
-                    if (currentConnection.value !== thisConnectionId) { 
+                    console.log(current);
+                    if (currentConnection.value !== thisConnectionId) {
+                        break;
+                    }
+                    const isIntentionalEnd = typeof (current.value) === "object"
+                                            && "__living_data_end" in current.value
+                                            && current.value.__living_data_end === thisConnectionId;
+                    if (isIntentionalEnd) {
                         break;
                     }
                     if (current.done === true) {
                         //If we were supposed to be truly done, we would have just broken above. 
                         //This is likely due to getting evicted on the server end, so we need to reconnect.
+                        retryCount.value = retryCount.value + 1;
+                        if (retryCount.value > MAX_RETRIES) {
+                            console.warn("Too many retries in a short period. Exiting.");
+                            break
+                        }
                         stream = await dataFeeder({
                             qrlId,
                             connectionId: thisConnectionId,
@@ -218,7 +241,12 @@ export function livingData<
                             args: currentArgs.value,
                             interval: interval,
                         });
-                    } else { 
+                        clearTimeout(retryResetTimeout.value);
+                        retryResetTimeout.value = setTimeout(() => {
+                            retryCount.value = 0;
+                        }, RESET_DELAY) as unknown as number;
+
+                    } else {
                         dataSignal.value = current.value as Awaited<ReturnType<UserFunction>>;
                     }
                 }
@@ -254,11 +282,11 @@ export function livingData<
         });
 
         useVisibleTask$(({ cleanup }) => {
-            function saveResources() { 
-                if (document.visibilityState === "hidden") { 
+            function saveResources() {
+                if (document.visibilityState === "hidden") {
                     pause();
                 }
-                if (document.visibilityState === "visible") { 
+                if (document.visibilityState === "visible") {
                     refresh();
                 }
             }
@@ -267,10 +295,10 @@ export function livingData<
             window.addEventListener("focus", refresh);
             window.addEventListener("online", refresh);
 
-            cleanup(() => { 
+            cleanup(() => {
                 document.removeEventListener("visibilitychange", saveResources);
                 window.removeEventListener("online", refresh);
-                window.removeEventListener("focus", refresh); 
+                window.removeEventListener("focus", refresh);
                 //focus and visibility change to visible will likely overlap.
                 //would be nice to account for that and only refresh once
 
@@ -280,7 +308,7 @@ export function livingData<
         });
 
 
-        
+
         //For now, the intended behavior is that when someone updates to a new interval, it'll start from that point.
         //e.g., I set interval to 4000ms right now, then the next time it fires is 4000ms from right now.
 
@@ -337,30 +365,41 @@ export const dataFeeder = server$(async function* (options: {
     interval?: number | null;
     skipInitialCall?: boolean;
 }) {
+    console.log(options.interval);
     const func = targetQrlById.get(options.qrlId)!;
     if (options.skipInitialCall !== true) {
-        yield await func.call(this, ...options.args);
+        const initialCallResponse = await func.call(this, ...options.args);
+        if (typeof (initialCallResponse as any)?.[Symbol.asyncIterator] === 'function') {
+            for await (const item of initialCallResponse as AsyncIterable<any>) {
+                yield item;
+            }
+            yield {  __living_data_end: options.connectionId }
+            return;
+        } else {
+            yield initialCallResponse
+        }
     }
     let lastCompleted = Date.now();
-    if (clientStrategyOnlyInvocationIds.has(options.invocationId)) {
+
+    if (options.interval === null) {
+        yield {  __living_data_end: options.connectionId }
         return;
     }
-
-    const retrievedDefaultInterval = defaultIntervalByInvocationId.get(
-        options.invocationId
-    );
-    const providedInterval = options.interval || retrievedDefaultInterval;
-    if (providedInterval === null) {
+    if (clientStrategyOnlyInvocationIds.has(options.invocationId)) {
+        yield { __living_data_end: options.connectionId }
+        return;
+    }
+    const retrievedDefaultInterval = defaultIntervalByInvocationId.get(options.invocationId);
+    if (retrievedDefaultInterval === null) {
+        yield {  __living_data_end: options.connectionId }
         return;
     }
 
     const DEFAULT_MINIMUM_INTERVAL = 80;
-    const minimumInterval = minimumIntervalByInvocationId.get(
-        options.invocationId
-    );
+    const minimumInterval = minimumIntervalByInvocationId.get(options.invocationId);
 
     const interval = Math.max(
-        providedInterval || DEFAULT_INTERVAL,
+        options.interval || retrievedDefaultInterval || DEFAULT_INTERVAL,
         minimumInterval && minimumInterval > 0
             ? minimumInterval
             : DEFAULT_MINIMUM_INTERVAL
@@ -369,22 +408,16 @@ export const dataFeeder = server$(async function* (options: {
     let lastResponse;
     while (disconnectRequestsByConnectionId.has(options.connectionId) === false) {
         if (Date.now() - lastCompleted >= interval) {
-            const response = await func.call(this, ...options.args);
-            if (!areEqual(response, lastResponse)) {
-                console.log(response);
-                lastResponse = response;
-            // if (typeof response?.[Symbol.iterator] === 'function') {
-            //     for await (const item of response  as AsyncIterable<any>) {
-            //         yield item;
-            //     }
-            //   } else {
-                yield response;
-            //   }
+            const thisResponse = await func.call(this, ...options.args);
+            if (!areEqual(thisResponse, lastResponse)) {
+                lastResponse = thisResponse;
+                yield thisResponse;
             }
             lastCompleted = Date.now();
         }
         await wait(20);
     }
+    yield {  __living_data_end: options.connectionId }
 });
 
 export function wait(ms: number) {
