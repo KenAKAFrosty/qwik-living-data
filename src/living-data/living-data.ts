@@ -38,7 +38,7 @@ type LivingDataReturn<
         };
         (options: {
             startingValue: Awaited<ReturnType<UserFunction>>;
-            interval?: number | null;
+            interval?: Awaited<ReturnType<UserFunction>> extends AsyncGenerator ? null : number | null;
             intervalStrategy?: IsClientStrategyOnly extends true
             ? "client"
             : "client" | "server";
@@ -49,7 +49,7 @@ type LivingDataReturn<
             newInterval: QRL<(interval: number | null) => void>;
         };
         (options: {
-            interval?: number | null;
+            interval?: Awaited<ReturnType<UserFunction>> extends AsyncGenerator ? null : number | null;
             startingValue?: Awaited<ReturnType<UserFunction>>;
             intervalStrategy?: IsClientStrategyOnly extends true
             ? "client"
@@ -73,7 +73,7 @@ type LivingDataReturn<
         (options: {
             initialArgs?: Parameters<UserFunction>;
             startingValue: Awaited<ReturnType<UserFunction>>;
-            interval?: number | null;
+            interval?: Awaited<ReturnType<UserFunction>> extends AsyncGenerator ? null : number | null;
             intervalStrategy?: IsClientStrategyOnly extends true
             ? "client"
             : "client" | "server";
@@ -86,7 +86,7 @@ type LivingDataReturn<
         };
         (options: {
             initialArgs?: Parameters<UserFunction>;
-            interval?: number | null;
+            interval?: Awaited<ReturnType<UserFunction>> extends AsyncGenerator ? null : number | null;
             startingValue?: Awaited<ReturnType<UserFunction>>;
             intervalStrategy?: IsClientStrategyOnly extends true
             ? "client"
@@ -104,7 +104,7 @@ type LivingDataReturn<
         (options: {
             initialArgs: Parameters<UserFunction>;
             startingValue: Awaited<ReturnType<UserFunction>>;
-            interval?: number | null;
+            interval?: Awaited<ReturnType<UserFunction>> extends AsyncGenerator ? null : number | null;
             intervalStrategy?: IsClientStrategyOnly extends true
             ? "client"
             : "client" | "server";
@@ -117,7 +117,7 @@ type LivingDataReturn<
         };
         (options: {
             initialArgs: Parameters<UserFunction>;
-            interval?: number | null;
+            interval?: Awaited<ReturnType<UserFunction>> extends AsyncGenerator ? null : number | null;
             startingValue?: Awaited<ReturnType<UserFunction>>;
             intervalStrategy?: IsClientStrategyOnly extends true
             ? "client"
