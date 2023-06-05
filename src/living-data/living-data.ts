@@ -231,6 +231,7 @@ export function livingData<
         const pause = $(async () => {
             shouldClientSidePoll.value = false;
             if (!clientOnly) {
+                currentConnection.value = -1;
                 await disconnectConnectionInstances(connections.value);
             }
         });
