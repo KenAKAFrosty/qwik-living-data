@@ -4,14 +4,18 @@ import { XMLParser } from "fast-xml-parser";
 import { BusIcon } from "~/components/icons";
 import { livingData } from "~/living-data/living-data";
 import { TRANSIT_AGENCIES } from "./transit-routes";
+import { findBoundingBox } from "~/geography-functions/geography-functions";
 
-export const getVehiclesInfo = server$(async function () {
-    const vehicles = await getLiveVehiclesInfo("Jacksonville Transportation Authority", "1");
+export const getVehiclesInfo = server$(async function (agency: keyof typeof TRANSIT_AGENCIES) {
+    const routesOfVehicles = await Promise.all(TRANSIT_AGENCIES[agency].routeTags.map(async (tag) => {
+        return getLiveVehiclesInfo(agency, tag)
+    }))
+    const vehicles = routesOfVehicles.flat();
     return vehicles;
 });
 
 export const useLoadedVehiclesInfo = routeLoader$((event) =>
-    getVehiclesInfo.call(event)
+    getVehiclesInfo.call(event, "Jacksonville Transportation Authority")
 );
 export const useVehiclesInfo = livingData(getVehiclesInfo);
 
@@ -19,8 +23,9 @@ export const STARTING_ROTATION = -120 as const;
 export default component$(() => {
     const loadedValues = useLoadedVehiclesInfo().value;
     const vehicles = useVehiclesInfo({
+        initialArgs: ["Jacksonville Transportation Authority"],
         startingValue: loadedValues,
-        interval: 5000,
+        interval: 15000,
     });
     const vehicleInfo = useSignal(loadedValues);
 
@@ -32,6 +37,8 @@ export default component$(() => {
 
     useVisibleTask$(({ track }) => {
         track(() => vehicles.signal.value);
+        const bounding = findBoundingBox(vehicles.signal.value.map(v => ({ lat: Number(v.lat), lon: Number(v.lon) })));
+        console.log(bounding);
         const oldHeadingById = new Map<string, string>();
         vehicleInfo.value.forEach(vehicle => {
             oldHeadingById.set(vehicle.id, vehicle.heading);
@@ -48,9 +55,6 @@ export default component$(() => {
         normalizedPositionById.value = newNormalizedPositionsById;
         vehicleInfo.value = vehicles.signal.value;
     });
-
-    console.log(vehicleInfo.value);
-
     useStylesScoped$(`  
     section { 
       display: flex;
@@ -62,7 +66,10 @@ export default component$(() => {
         width: fit-content;
     }
     .rotator { 
-        transition: transform 0.5s ease-in-out;
+        transition: transform 3s ease-in-out;
+    }
+    .vehicle { 
+        font-size: 10px
     }
   `);
 
@@ -71,33 +78,24 @@ export default component$(() => {
         <main>
             <section>
                 {vehicleInfo.value
-                    .sort((a, b) => {
-                        if (a.speedKmHr === "0") {
-                            return 1;
-                        }
-                        if (b.speedKmHr === "0") {
-                            return -1;
-                        }
-                        return 0;
-                    })
+                    .sort((a, b) => a.id.localeCompare(b.id))
                     .map((vehicle) => {
                         const heading = normalizeTo360(Number(vehicle.heading));
                         const rotation = normalizedPositionById.value[vehicle.id];
-                        console.log([heading, rotation]);
                         return (
-                            <div class="agency" key={vehicle.id + '-a'}>
+                            <div class="vehicle" key={vehicle.id + '-a'}>
                                 {vehicle.id}
                                 <div key={vehicle.id + '-b'} style={{ transform: `rotate(${heading > 180 ? STARTING_ROTATION * -1 : STARTING_ROTATION}deg)` }}>
                                     <div key={vehicle.id + '-c'} class="rotator" style={{ transform: `rotate(${rotation}deg)` }}>
                                         <BusIcon
-                                            height={50}
-                                            width={50}
+                                            height={20}
+                                            width={20}
                                             style={{ transform: `${heading > 180 ? "scaleX(-1)" : ""}` }}
                                         />
                                     </div>
                                 </div>
                                 <br />
-                                {vehicle.lat} {vehicle.lon} <br />
+                                {vehicle.lat.slice(0,5)}<br /> {vehicle.lon.slice(0,5)} <br />
                                 {degreesToCompass(heading)} {vehicle.heading}
                                 <br />
                                 {vehicle.speedKmHr === "0"
@@ -153,7 +151,11 @@ export async function getLiveVehiclesInfo<
         };
     };
     if (!json.body.vehicle) {
+        console.log("No vehicles found")
         return [];
+    }
+    if (!Array.isArray(json.body.vehicle)) { 
+        json.body.vehicle = [json.body.vehicle];
     }
     return json.body.vehicle.map((vehicle) => ({
         id: vehicle["@_id"],
