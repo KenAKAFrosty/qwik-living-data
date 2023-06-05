@@ -10,8 +10,8 @@ export default component$(() => {
     const ably = useLivingAbly({
         initialArgs: ["getting-started"]
     });
+    ably.signal.value;
 
-    console.log(ably.signal.value);
     useVisibleTask$(() => {
         // listenToAblyStream("getting-started").then(async (stream) => {
         //     for await (const message of stream) {
@@ -21,5 +21,10 @@ export default component$(() => {
     })
     return <main>
         Heyo!
+        <button onClick$={() => { 
+
+        }}>
+            hmmm
+        </button>
     </main>
 })

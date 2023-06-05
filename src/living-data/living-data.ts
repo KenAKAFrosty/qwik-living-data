@@ -221,8 +221,8 @@ export function livingData<
                         break;
                     }
                     const isIntentionalEnd = typeof (current.value) === "object"
-                                            && "__living_data_end" in current.value
-                                            && current.value.__living_data_end === thisConnectionId;
+                        && "__living_data_end" in current.value
+                        && current.value.__living_data_end === thisConnectionId;
                     if (isIntentionalEnd) {
                         break;
                     }
@@ -365,24 +365,56 @@ export const dataFeeder = server$(async function* (options: {
     interval?: number | null;
     skipInitialCall?: boolean;
 }) {
-    console.log(options.interval);
     const func = targetQrlById.get(options.qrlId)!;
+    let lastCompleted = Date.now();
     if (options.skipInitialCall !== true) {
         const initialCallResponse = await func.call(this, ...options.args);
+        lastCompleted = Date.now();
+
         if (typeof (initialCallResponse as any)?.[Symbol.asyncIterator] === 'function') {
-            for await (const item of initialCallResponse as AsyncIterable<any>) {
-                yield item;
+            const stream = initialCallResponse as AsyncIterator<any>;
+            const streamedValues: any[] = [];
+            let isDone = false;
+            /* eslint-disable-next-line */
+            async function pipeValuesOver() {
+                while (
+                    isDone === false 
+                    &&  
+                    disconnectRequestsByConnectionId.has(options.connectionId) === false
+                    ) {
+                    const current = await stream.next();
+                    if (disconnectRequestsByConnectionId.has(options.connectionId)) { 
+                        console.log('got disconnect signal')
+                        return;
+                    }
+                    if (current.done === true) {
+                        console.log('got done signal')
+                        isDone = true;
+                        return;
+                    }
+                    streamedValues.push(current.value);
+                }
             }
-            yield {  __living_data_end: options.connectionId }
+            pipeValuesOver();
+            while (
+                disconnectRequestsByConnectionId.has(options.connectionId) === false
+                &&
+                isDone === false
+            ) {
+                while (streamedValues.length > 0) {
+                    yield streamedValues.shift();
+                }
+                await wait(20);
+            }
+            yield { __living_data_end: options.connectionId }
             return;
         } else {
             yield initialCallResponse
         }
     }
-    let lastCompleted = Date.now();
 
     if (options.interval === null) {
-        yield {  __living_data_end: options.connectionId }
+        yield { __living_data_end: options.connectionId }
         return;
     }
     if (clientStrategyOnlyInvocationIds.has(options.invocationId)) {
@@ -391,7 +423,7 @@ export const dataFeeder = server$(async function* (options: {
     }
     const retrievedDefaultInterval = defaultIntervalByInvocationId.get(options.invocationId);
     if (retrievedDefaultInterval === null) {
-        yield {  __living_data_end: options.connectionId }
+        yield { __living_data_end: options.connectionId }
         return;
     }
 
@@ -417,7 +449,7 @@ export const dataFeeder = server$(async function* (options: {
         }
         await wait(20);
     }
-    yield {  __living_data_end: options.connectionId }
+    yield { __living_data_end: options.connectionId }
 });
 
 export function wait(ms: number) {

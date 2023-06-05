@@ -17,6 +17,7 @@ export const listenToAblyStream = server$(
         url.searchParams.set("v", "1.2");
         url.searchParams.set("heartbeats", "true");
         url.searchParams.set("key", key);
+
         const response = await fetch(url.toString());
 
         const stream = response.body?.getReader();
