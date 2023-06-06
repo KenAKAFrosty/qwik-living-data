@@ -14,6 +14,10 @@ const defaultIntervalByInvocationId = new Map<string, number | null>();
 const clientStrategyOnlyInvocationIds = new Set<string>();
 const disconnectRequestsByConnectionId = new Set<number>();
 
+
+export type VisibleTaskStrategy = NonNullable<NonNullable<Parameters<typeof useVisibleTask$>[1]>["strategy"]>;
+
+
 export type HasMandatoryParameters<T extends (...args: any[]) => any> =
     Parameters<T> extends [infer P, ...infer Rest]
     ? P extends undefined
@@ -42,6 +46,7 @@ type LivingDataReturn<
             intervalStrategy?: IsClientStrategyOnly extends true
             ? "client"
             : "client" | "server";
+            connectionEagerness?: VisibleTaskStrategy;
         }): {
             signal: Readonly<Signal<Awaited<ReturnType<UserFunction>>>>;
             pause: QRL<() => void>;
@@ -54,6 +59,7 @@ type LivingDataReturn<
             intervalStrategy?: IsClientStrategyOnly extends true
             ? "client"
             : "client" | "server";
+            connectionEagerness?: VisibleTaskStrategy;
         }): {
             signal: Readonly<Signal<undefined | Awaited<ReturnType<UserFunction>>>>;
             pause: QRL<() => void>;
@@ -77,6 +83,7 @@ type LivingDataReturn<
             intervalStrategy?: IsClientStrategyOnly extends true
             ? "client"
             : "client" | "server";
+            connectionEagerness?: VisibleTaskStrategy;
         }): {
             signal: Readonly<Signal<Awaited<ReturnType<UserFunction>>>>;
             pause: QRL<() => void>;
@@ -91,6 +98,7 @@ type LivingDataReturn<
             intervalStrategy?: IsClientStrategyOnly extends true
             ? "client"
             : "client" | "server";
+            connectionEagerness?: VisibleTaskStrategy;
         }): {
             signal: Readonly<Signal<undefined | Awaited<ReturnType<UserFunction>>>>;
             pause: QRL<() => void>;
@@ -108,6 +116,7 @@ type LivingDataReturn<
             intervalStrategy?: IsClientStrategyOnly extends true
             ? "client"
             : "client" | "server";
+            connectionEagerness?: VisibleTaskStrategy;
         }): {
             signal: Readonly<Signal<Awaited<ReturnType<UserFunction>>>>;
             pause: QRL<() => void>;
@@ -122,6 +131,7 @@ type LivingDataReturn<
             intervalStrategy?: IsClientStrategyOnly extends true
             ? "client"
             : "client" | "server";
+            connectionEagerness?: VisibleTaskStrategy;
         }): {
             signal: Readonly<Signal<undefined | Awaited<ReturnType<UserFunction>>>>;
             pause: QRL<() => void>;
@@ -162,6 +172,7 @@ export function livingData<
         interval?: number | null;
         startingValue?: Awaited<ReturnType<UserFunction>>;
         intervalStrategy?: "client" | "server";
+        connectionEagerness?: VisibleTaskStrategy;
     }) {
         const dataSignal = useSignal<undefined | Awaited<ReturnType<UserFunction>>>(
             options?.startingValue
@@ -305,6 +316,9 @@ export function livingData<
                 pause();
             });
             retryOnFailure(connectAndListen);
+        },
+        { 
+            strategy: options?.connectionEagerness
         });
 
 

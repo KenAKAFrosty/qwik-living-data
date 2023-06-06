@@ -9,7 +9,7 @@ import { SimpleMultipleUsersIcon, SimpleUserIcon } from "../icons";
 import styles from "./chat.css?inline"
 
 //NOTE: If this were a proper production app, then it would be advised to use an 
-//in-memory database (Redis, memcached, etc.) given how frequently this is polling (only 120ms between calls - and PER visitor!)
+//in-memory database (Redis, memcached, etc.) given how frequently this is polling (only 180ms between calls - and PER visitor!)
 //The polling itself happens server side (edge functions in our case here) which is awesome benefit to not make our users' devices have to do that
 //but it doesn't change the fact that the data source still has to get hit very very frequently to keep it feeling super snappy and realtime
 
