@@ -21,9 +21,23 @@ import { type Agencies, getVehiclesLocations, type VehiclesLocations } from "./t
 import { TRANSIT_AGENCIES } from "./transit-routes";
 
 export const useVehiclesLocations = livingData(getVehiclesLocations);
-
+export const useLoadedDowntownConnection = routeLoader$((event) => getVehiclesLocations.call(event, "Downtown Connection"));
+export const useLoadedDumbartonExpress = routeLoader$((event) => getVehiclesLocations.call(event, "Dumbarton Express"));
+export const useLoadedIIA = routeLoader$((event) => getVehiclesLocations.call(event, "Indianapolis International Airport"));
+export const useLoadedCharlesRiver = routeLoader$((event) => getVehiclesLocations.call(event, "EZRide - Charles River TMA"));
 
 export default component$(() => {
+    const numberOfRoutesByAgency: Record<string, number> = {};
+
+    Object.keys(TRANSIT_AGENCIES).forEach((agency) => {
+        numberOfRoutesByAgency[agency] = TRANSIT_AGENCIES[agency as keyof typeof TRANSIT_AGENCIES].routeTags.length;
+    });
+    console.log(Object.entries(numberOfRoutesByAgency).sort((a, b) => a[1] - b[1]));
+
+    const loadedDowntownConnection = useLoadedDowntownConnection().value;
+    const loadedDumbartonExpress = useLoadedDumbartonExpress().value;
+    // const loadedIIA = useLoadedIIA().value;
+    // const loadedCharlesRiver = useLoadedCharlesRiver().value;
 
     useStylesScoped$(`
         main { 
@@ -36,18 +50,21 @@ export default component$(() => {
     `);
     return (
         <main>
-            {/* <AgencyVehicles agency="Unitrans ASUCD/City of Davis" intialValues={loadedUnitrans} interval={3000} /> */}
+            <AgencyVehicles agency="Downtown Connection" intialValues={loadedDowntownConnection} interval={3000} />
+            <AgencyVehicles agency="Dumbarton Express" intialValues={loadedDumbartonExpress} interval={3000} />
+            <AgencyVehicles agency="Indianapolis International Airport" intialValues={[]} interval={3000} />
+            <AgencyVehicles agency="EZRide - Charles River TMA" intialValues={[]} interval={3000} />
         </main>
     );
 });
 
 export const AgencyVehicles = component$(
-    (props: { agency: Agencies; intialValues: VehiclesLocations; interval?: number; loadWhenVisible?: boolean }) => {
+    (props: { agency: Agencies; intialValues: VehiclesLocations; interval?: number; loadImmediately?: boolean }) => {
         const livingVehicles = useVehiclesLocations({
             initialArgs: [props.agency],
             startingValue: props.intialValues,
             interval: props.interval ?? 10000,
-            connectionEagerness: props.loadWhenVisible ? "intersection-observer" : "document-ready",
+            connectionEagerness: props.loadImmediately ? "document-ready" : "intersection-observer",
         });
         const vehiclesCache = useSignal(props.intialValues);
         const _normalizedPositionById: Record<string, number> = {};
@@ -64,7 +81,7 @@ export const AgencyVehicles = component$(
             );
             const aspectRatio = calculateAspectRatio(bounding);
             const boxHeight = BOX_WIDTH * aspectRatio;
-            
+
             const coordsById: Record<string, { x: number; y: number }> = {};
             livingVehicles.signal.value.forEach((vehicle) => {
                 coordsById[vehicle.id] = calculateXY({
@@ -90,7 +107,11 @@ export const AgencyVehicles = component$(
             });
             const newNormalizedPositionsById: Record<string, number> = {};
             livingVehicles.signal.value.forEach((vehicle) => {
-                const oldHeading = oldHeadingById.get(vehicle.id) ?? "0";
+                const oldHeading = oldHeadingById.get(vehicle.id);
+                if (!oldHeading) { 
+                    newNormalizedPositionsById[vehicle.id] = normalizeTo360(Number(vehicle.heading));
+                    return;
+                }
                 const amountToRotate = shortestAngle(
                     normalizeTo360(Number(oldHeading)),
                     normalizeTo360(Number(vehicle.heading))
@@ -209,7 +230,7 @@ export const Vehicles = component$(
                 <section class="info-cards-section">
                     {props.vehicles.value
                         .sort((a, b) => b.lon.localeCompare(a.lon))
-                        .map((vehicle) => {
+                        .map((vehicle, i) => {
                             const rotation = props.normalizedPositionById.value[vehicle.id];
                             return (
                                 <div
@@ -230,7 +251,8 @@ export const Vehicles = component$(
                                     }}
                                 >
                                     <VehicleLocationCard
-                                        vehicle={vehicle}
+                                        vehicles={props.vehicles}
+                                        thisVehicleIndex={i}
                                         rotation={rotation}
                                         selectedVehicleId={selectedId}
                                     />
@@ -248,8 +270,7 @@ export const Vehicles = component$(
                         }
                     }}
                     style={{
-                        height: `${
-                            BOX_WIDTH *
+                        height: `${BOX_WIDTH *
                             calculateAspectRatio(
                                 findBoundingBox(
                                     props.vehicles.value.map((v) => ({
@@ -258,7 +279,7 @@ export const Vehicles = component$(
                                     }))
                                 )
                             )
-                        }px`,
+                            }px`,
                         width: `${BOX_WIDTH}px`,
                         position: "relative",
                     }}
@@ -299,7 +320,7 @@ export const Vehicles = component$(
 );
 
 export const VehicleLocationCard = component$(
-    (props: { vehicle: VehiclesLocations[number]; rotation: number; selectedVehicleId: Signal<string> }) => {
+    (props: { vehicles: Signal<VehiclesLocations>; thisVehicleIndex: number; rotation: number; selectedVehicleId: Signal<string> }) => {
         useStylesScoped$(`
       div { 
           width: -moz-fit-content;
@@ -368,29 +389,30 @@ export const VehicleLocationCard = component$(
         filter: grayscale(100%);
       }
     `);
+        const vehicle = props.vehicles.value[props.thisVehicleIndex];
         const ref = useSignal<Element>();
-        const heading = normalizeTo360(Number(props.vehicle.heading));
+        const heading = normalizeTo360(Number(vehicle.heading));
         useTask$(({ track }) => {
             track(() => props.selectedVehicleId.value);
-            if (props.selectedVehicleId.value === props.vehicle.id) {
+            if (props.selectedVehicleId.value === vehicle.id) {
                 ref.value?.scrollIntoView({ behavior: "smooth", block: "center" });
             }
         });
         return (
-            <div class="vehicle" key={props.vehicle.id + "-a"} ref={ref}>
-                <p class="id">{props.vehicle.id}</p>
-                <Speedometer speedKmHr={Number(props.vehicle.speedKmHr)} />
+            <div class="vehicle" key={vehicle.id + "-a"} ref={ref}>
+                <p class="id">{vehicle.id}</p>
+                <Speedometer speedKmHr={Number(vehicle.speedKmHr)} />
                 <div
-                    key={props.vehicle.id + "-b"}
+                    key={vehicle.id + "-b"}
                     style={{
                         transform: `rotate(${heading > 180 ? STARTING_ROTATION * -1 : STARTING_ROTATION}deg)`,
                     }}
                 >
                     <div
-                        key={props.vehicle.id + "-c"}
+                        key={vehicle.id + "-c"}
                         class={{
                             rotator: true,
-                            stopped: props.vehicle.speedKmHr === "0",
+                            stopped: vehicle.speedKmHr === "0",
                         }}
                         style={{
                             transform: `rotate(${props.rotation}deg)`,
@@ -424,11 +446,11 @@ export const VehicleLocationCard = component$(
                 <div class="coordinates">
                     <MapPinIcon style={{ "margin-left": "-10px" }} />
                     <div class="lat">
-                        <p>{props.vehicle.lat.slice(0, 6)}</p>
+                        <p>{vehicle.lat.slice(0, 6)}</p>
                         <span>Latitude</span>
                     </div>
                     <div class="lon">
-                        <p>{props.vehicle.lon.slice(0, 6)}</p>
+                        <p>{vehicle.lon.slice(0, 6)}</p>
                         <span>Longitude</span>
                     </div>
                 </div>
@@ -467,8 +489,8 @@ export const Speedometer = component$((props: { speedKmHr: number }) => {
                 {isNaN(props.speedKmHr) === true
                     ? "Unknown"
                     : props.speedKmHr === 0
-                    ? "Stopped"
-                    : `${props.speedKmHr} km/h`}
+                        ? "Stopped"
+                        : `${props.speedKmHr} km/h`}
             </p>
         </div>
     );
