@@ -214,6 +214,12 @@ export const Iss = component$(() => {
             font-size: 12px;
             transition: transform ${interval}ms ease-out;
         }
+
+        @media (max-width: 500px) { 
+            p { 
+                font-size: 18px;
+            }
+        }
     `);
   return (
     <>
