@@ -230,7 +230,8 @@ export function livingData<
                     if (currentConnection.value !== thisConnectionId) {
                         break;
                     }
-                    const isIntentionalEnd = typeof (current.value) === "object"
+                    const isIntentionalEnd = current.value
+                        && typeof (current.value) === "object"
                         && "__living_data_end" in current.value
                         && current.value.__living_data_end === thisConnectionId;
                     if (isIntentionalEnd) {

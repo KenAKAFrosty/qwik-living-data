@@ -3,41 +3,36 @@ import {
     useComputed$,
     useSignal,
     useStylesScoped$,
+    useTask$,
     useVisibleTask$,
     type Signal,
-    useTask$,
 } from "@builder.io/qwik";
 import { routeLoader$ } from "@builder.io/qwik-city";
 import { BusIcon, MapPinIcon, SpeedometerIcon } from "~/components/icons";
 import {
-    calculateAspectRatio,
     calculateXY,
     degreesToCompass,
     findBoundingBox,
-    normalizeTo360,
+    normalizeTo360
 } from "~/geography-functions/geography-functions";
 import { livingData } from "~/living-data/living-data";
-import { type Agencies, getVehiclesLocations, type VehiclesLocations } from "./transit-functions";
+import { getVehiclesLocations, type Agencies, type VehiclesLocations } from "./transit-functions";
 import { TRANSIT_AGENCIES } from "./transit-routes";
 
+
+export const BOX_WIDTH = 320 as const;
+export const BOX_HEIGHT = 150 as const;
+export const STARTING_ROTATION = -120 as const;
+
 export const useVehiclesLocations = livingData(getVehiclesLocations);
+export const useLoadedPortland = routeLoader$((event) => getVehiclesLocations.call(event, "Portland Streetcar"));
 export const useLoadedDowntownConnection = routeLoader$((event) => getVehiclesLocations.call(event, "Downtown Connection"));
-export const useLoadedDumbartonExpress = routeLoader$((event) => getVehiclesLocations.call(event, "Dumbarton Express"));
-export const useLoadedIIA = routeLoader$((event) => getVehiclesLocations.call(event, "Indianapolis International Airport"));
-export const useLoadedCharlesRiver = routeLoader$((event) => getVehiclesLocations.call(event, "EZRide - Charles River TMA"));
+
 
 export default component$(() => {
-    const numberOfRoutesByAgency: Record<string, number> = {};
 
-    Object.keys(TRANSIT_AGENCIES).forEach((agency) => {
-        numberOfRoutesByAgency[agency] = TRANSIT_AGENCIES[agency as keyof typeof TRANSIT_AGENCIES].routeTags.length;
-    });
-    console.log(Object.entries(numberOfRoutesByAgency).sort((a, b) => a[1] - b[1]));
-
+    const loadedPortland = useLoadedPortland().value;
     const loadedDowntownConnection = useLoadedDowntownConnection().value;
-    const loadedDumbartonExpress = useLoadedDumbartonExpress().value;
-    const loadedIIA = useLoadedIIA().value;
-    const loadedCharlesRiver = useLoadedCharlesRiver().value;
 
     useStylesScoped$(`
         main { 
@@ -45,41 +40,52 @@ export default component$(() => {
           flex-direction: column;
           align-items: center;
           width: 100%;
-          gap: 80px;
+        }
+        section { 
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
         }
     `);
     return (
         <main>
-            <AgencyVehicles agency="Downtown Connection" intialValues={loadedDowntownConnection} interval={3000}  />
-            <AgencyVehicles agency="Dumbarton Express" intialValues={loadedDumbartonExpress} interval={3000} />
-            <AgencyVehicles agency="Indianapolis International Airport" intialValues={[]} interval={3000} />
-            <AgencyVehicles agency="EZRide - Charles River TMA" intialValues={[]} interval={3000} />
+            <section>
+                <AgencyVehicles agency="Portland Streetcar" intialValues={loadedPortland} interval={5000} />
+                <AgencyVehicles agency="Downtown Connection" intialValues={loadedDowntownConnection} interval={5000} />
+                <AgencyVehicles agency="Glendale Beeline" intialValues={[]} interval={5000} />
+                <AgencyVehicles agency="Jacksonville Transportation Authority" intialValues={[]} interval={5000} />
+                <AgencyVehicles agency="Societe de transport de Laval" intialValues={[]} interval={5000} />
+            </section>
         </main>
     );
 });
 
+
+
 export const AgencyVehicles = component$(
-    (props: { agency: Agencies; intialValues: VehiclesLocations; interval?: number; loadImmediately?: boolean }) => {
+    (props: { agency: Agencies; intialValues: null | VehiclesLocations; interval?: number; loadImmediately?: boolean }) => {
         const livingVehicles = useVehiclesLocations({
             initialArgs: [props.agency],
             startingValue: props.intialValues,
             interval: props.interval ?? 10000
         });
         const vehiclesCache = useSignal(props.intialValues);
+
         const _normalizedPositionById: Record<string, number> = {};
-        props.intialValues.forEach((vehicle) => {
+        props.intialValues?.forEach((vehicle) => {
             _normalizedPositionById[vehicle.id] = normalizeTo360(Number(vehicle.heading));
         });
         const normalizedPositionById = useSignal(_normalizedPositionById);
         const coordsById = useComputed$(() => {
+            if (livingVehicles.signal.value === null) {
+                return
+            }
             const bounding = findBoundingBox(
                 livingVehicles.signal.value.map((v) => ({
                     lat: Number(v.lat),
                     lon: Number(v.lon),
                 }))
             );
-            const aspectRatio = calculateAspectRatio(bounding);
-            const boxHeight = BOX_WIDTH * aspectRatio;
 
             const coordsById: Record<string, { x: number; y: number }> = {};
             livingVehicles.signal.value.forEach((vehicle) => {
@@ -87,7 +93,8 @@ export const AgencyVehicles = component$(
                     box: bounding,
                     item: { lat: Number(vehicle.lat), lon: Number(vehicle.lon) },
                     targetWidth: BOX_WIDTH,
-                    targetHeight: boxHeight,
+                    targetHeight: BOX_HEIGHT,
+                    maxHeight: BOX_HEIGHT
                 });
             });
             return coordsById;
@@ -95,15 +102,18 @@ export const AgencyVehicles = component$(
 
         useVisibleTask$(({ track }) => {
             track(() => livingVehicles.signal.value);
+            if (livingVehicles.signal.value === null) {
+                return;
+            }
 
             const oldHeadingById = new Map<string, string>();
-            vehiclesCache.value.forEach((vehicle) => {
+            vehiclesCache.value?.forEach((vehicle) => {
                 oldHeadingById.set(vehicle.id, vehicle.heading);
             });
             const newNormalizedPositionsById: Record<string, number> = {};
             livingVehicles.signal.value.forEach((vehicle) => {
                 const oldHeading = oldHeadingById.get(vehicle.id);
-                if (!oldHeading) { 
+                if (!oldHeading) {
                     newNormalizedPositionsById[vehicle.id] = normalizeTo360(Number(vehicle.heading));
                     return;
                 }
@@ -122,6 +132,9 @@ export const AgencyVehicles = component$(
             display: flex;
             flex-direction: column;
             align-items: center;
+            min-height: 430px;
+            min-width: 400px;
+            margin: 10px 10px 30px;
           }
           h2 { 
             font-size: 42px;
@@ -133,26 +146,26 @@ export const AgencyVehicles = component$(
           }
         `);
 
+        if (livingVehicles.signal.value === null) {
+            return <></>
+        }
         if (livingVehicles.signal.value.length === 0) {
             return <main></main>;
         }
-
         return (
             <main>
-                <h2>{TRANSIT_AGENCIES[props.agency].region}</h2>
+                <h2 style={{ "margin-bottom": "10px" }}>{TRANSIT_AGENCIES[props.agency].region}</h2>
                 <h3>{props.agency}</h3>
                 <Vehicles
-                    coordsById={coordsById}
+                    coordsById={coordsById as Signal<Record<string, { x: number; y: number }>>}
                     normalizedPositionById={normalizedPositionById}
-                    vehicles={livingVehicles.signal}
+                    vehicles={livingVehicles.signal as Readonly<Signal<NonNullable<VehiclesLocations>>>}
                 />
             </main>
         );
     }
 );
 
-export const BOX_WIDTH = 320;
-export const STARTING_ROTATION = -120 as const;
 
 export const Vehicles = component$(
     (props: {
@@ -202,8 +215,8 @@ export const Vehicles = component$(
           top: 0;
           transition: transform 1s ease-out;
           border-radius: 50%;
-          width: 8px;
-          height: 8px;
+          width: 10px;
+          height: 10px;
         }
         .highlighted-dot { 
           background: var(--qwik-light-purple);
@@ -224,7 +237,7 @@ export const Vehicles = component$(
             <section class="container">
                 <section class="info-cards-section">
                     {props.vehicles.value
-                        .sort((a, b) => b.lon.localeCompare(a.lon))
+                        .sort((a, b) => b.id.localeCompare(a.id))
                         .map((vehicle, i) => {
                             const rotation = props.normalizedPositionById.value[vehicle.id];
                             return (
@@ -265,16 +278,7 @@ export const Vehicles = component$(
                         }
                     }}
                     style={{
-                        height: `${BOX_WIDTH *
-                            calculateAspectRatio(
-                                findBoundingBox(
-                                    props.vehicles.value.map((v) => ({
-                                        lat: Number(v.lat),
-                                        lon: Number(v.lon),
-                                    }))
-                                )
-                            )
-                            }px`,
+                        height: `${BOX_HEIGHT}px`,
                         width: `${BOX_WIDTH}px`,
                         position: "relative",
                     }}

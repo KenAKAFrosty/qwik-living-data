@@ -19,7 +19,11 @@ export const getVehiclesLocations = server$(async function (agency: Agencies) {
             });
         })
     );
-    return uniqueVehicles;
+    if (uniqueVehicles.length === 0) {
+        return null
+    } else { 
+        return uniqueVehicles;
+    }
 });
 
 export async function getLiveVehiclesLocations<AGENCY extends Agencies>(
