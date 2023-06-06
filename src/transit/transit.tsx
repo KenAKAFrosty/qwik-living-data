@@ -44,13 +44,21 @@ export const Transit = component$((props: {
             justify-content: center;
             max-width: 1000px;
         }
+        h1 { 
+            font-size: 52px;
+            font-weight: normal;
+            text-shadow: 0px 0px 10px var(--qwik-light-purple);
+            margin: 40px 0px 40px;
+        }
     `);
     return (
         <main>
+            <h1>Data in motion</h1>
             <section>
                 <AgencyVehicles agency="Portland Streetcar" intialValues={props.loadedPortland} interval={5000} />
                 <AgencyVehicles agency="Downtown Connection" intialValues={props.loadedDowntownConnection} interval={5000} />
                 <AgencyVehicles agency="Glendale Beeline" intialValues={[]} interval={5000} />
+                <AgencyVehicles agency="Cape Cod Regional Transit Authority" intialValues={[]} interval={4000}  />
                 <AgencyVehicles agency="Jacksonville Transportation Authority" intialValues={[]} interval={5000} />
                 <AgencyVehicles agency="Societe de transport de Laval" intialValues={[]} interval={5000} />
             </section>
