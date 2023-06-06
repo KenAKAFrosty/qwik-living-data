@@ -139,7 +139,7 @@ export const AgencyVehicles = component$(
             flex-direction: column;
             align-items: center;
             min-height: 430px;
-            min-width: 400px;
+            min-width: 430px;
             margin: 10px 10px 30px;
           }
           h2 { 
