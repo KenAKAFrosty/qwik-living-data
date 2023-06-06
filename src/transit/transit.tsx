@@ -50,9 +50,9 @@ export const Transit = component$((props: {
             <section>
                 <AgencyVehicles agency="Portland Streetcar" intialValues={props.loadedPortland} interval={5000} />
                 <AgencyVehicles agency="Downtown Connection" intialValues={props.loadedDowntownConnection} interval={5000} />
-                {/* <AgencyVehicles agency="Glendale Beeline" intialValues={[]} interval={5000} />
+                <AgencyVehicles agency="Glendale Beeline" intialValues={[]} interval={5000} />
                 <AgencyVehicles agency="Jacksonville Transportation Authority" intialValues={[]} interval={5000} />
-                <AgencyVehicles agency="Societe de transport de Laval" intialValues={[]} interval={5000} /> */}
+                <AgencyVehicles agency="Societe de transport de Laval" intialValues={[]} interval={5000} />
             </section>
         </main>
     );
