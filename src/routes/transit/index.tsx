@@ -52,8 +52,8 @@ export default component$(() => {
         <main>
             <AgencyVehicles agency="Downtown Connection" intialValues={loadedDowntownConnection} interval={3000}  />
             <AgencyVehicles agency="Dumbarton Express" intialValues={loadedDumbartonExpress} interval={3000} />
-            <AgencyVehicles agency="Indianapolis International Airport" intialValues={loadedIIA} interval={3000} />
-            <AgencyVehicles agency="EZRide - Charles River TMA" intialValues={loadedCharlesRiver} interval={3000} />
+            <AgencyVehicles agency="Indianapolis International Airport" intialValues={[]} interval={3000} />
+            <AgencyVehicles agency="EZRide - Charles River TMA" intialValues={[]} interval={3000} />
         </main>
     );
 });
@@ -134,7 +134,7 @@ export const AgencyVehicles = component$(
         `);
 
         if (livingVehicles.signal.value.length === 0) {
-            return <></>;
+            return <main></main>;
         }
 
         return (
