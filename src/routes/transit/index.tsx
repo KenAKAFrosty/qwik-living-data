@@ -45,6 +45,7 @@ export default component$(() => {
             display: flex;
             flex-wrap: wrap;
             justify-content: center;
+            max-width: 1000px;
         }
     `);
     return (
