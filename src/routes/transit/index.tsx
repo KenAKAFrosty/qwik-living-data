@@ -17,7 +17,7 @@ import {
     normalizeTo360,
 } from "~/geography-functions/geography-functions";
 import { livingData } from "~/living-data/living-data";
-import { getVehiclesLocations, type VehiclesLocations } from "./transit-functions";
+import { type Agencies, getVehiclesLocations, type VehiclesLocations } from "./transit-functions";
 
 export const useVehiclesLocations = livingData(getVehiclesLocations);
 export const useLoadedJacksonvilleLocations = routeLoader$((event) =>
@@ -26,70 +26,78 @@ export const useLoadedJacksonvilleLocations = routeLoader$((event) =>
 
 export default component$(() => {
     const loadedValues = useLoadedJacksonvilleLocations().value;
-    const jacksonvilleVehicles = useVehiclesLocations({
-        initialArgs: ["Jacksonville Transportation Authority"],
-        startingValue: loadedValues,
-        interval: 15000,
-    });
-    const vehicleInfo = useSignal(loadedValues);
-
-    const _normalizedPositionById: Record<string, number> = {};
-    loadedValues.forEach((vehicle) => {
-        _normalizedPositionById[vehicle.id] = normalizeTo360(Number(vehicle.heading));
-    });
-    const normalizedPositionById = useSignal(_normalizedPositionById);
-    const coordsById = useComputed$(() => {
-        const bounding = findBoundingBox(
-            jacksonvilleVehicles.signal.value.map((v) => ({
-                lat: Number(v.lat),
-                lon: Number(v.lon),
-            }))
-        );
-        const aspectRatio = calculateAspectRatio(bounding);
-        const boxHeight = BOX_WIDTH * aspectRatio;
-
-        const coordsById: Record<string, { x: number; y: number }> = {};
-        jacksonvilleVehicles.signal.value.forEach((vehicle) => {
-            coordsById[vehicle.id] = calculateXY({
-                box: bounding,
-                item: { lat: Number(vehicle.lat), lon: Number(vehicle.lon) },
-                targetWidth: BOX_WIDTH,
-                targetHeight: boxHeight,
-            });
-        });
-        return coordsById;
-    });
-
-    useVisibleTask$(({ track }) => {
-        track(() => jacksonvilleVehicles.signal.value);
-
-        const oldHeadingById = new Map<string, string>();
-        vehicleInfo.value.forEach((vehicle) => {
-            oldHeadingById.set(vehicle.id, vehicle.heading);
-        });
-        const newNormalizedPositionsById: Record<string, number> = {};
-        jacksonvilleVehicles.signal.value.forEach((vehicle) => {
-            const oldHeading = oldHeadingById.get(vehicle.id);
-            const amountToRotate = shortestAngle(
-                normalizeTo360(Number(oldHeading)),
-                normalizeTo360(Number(vehicle.heading))
-            );
-            newNormalizedPositionsById[vehicle.id] = normalizedPositionById.value[vehicle.id] + amountToRotate;
-        });
-        normalizedPositionById.value = newNormalizedPositionsById;
-        vehicleInfo.value = jacksonvilleVehicles.signal.value;
-    });
-
     return (
         <main>
+            <AgencyVehicles agency="Jacksonville Transportation Authority" intialValues={loadedValues} />
+        </main>
+    );
+});
+
+export const AgencyVehicles = component$(
+    (props: { agency: Agencies; intialValues: VehiclesLocations; interval?: number }) => {
+        const jacksonvilleVehicles = useVehiclesLocations({
+            initialArgs: [props.agency],
+            startingValue: props.intialValues,
+            interval: props.interval ?? 10000,
+        });
+        const vehicleInfo = useSignal(props.intialValues);
+
+        const _normalizedPositionById: Record<string, number> = {};
+        props.intialValues.forEach((vehicle) => {
+            _normalizedPositionById[vehicle.id] = normalizeTo360(Number(vehicle.heading));
+        });
+        const normalizedPositionById = useSignal(_normalizedPositionById);
+        const coordsById = useComputed$(() => {
+            const bounding = findBoundingBox(
+                jacksonvilleVehicles.signal.value.map((v) => ({
+                    lat: Number(v.lat),
+                    lon: Number(v.lon),
+                }))
+            );
+            const aspectRatio = calculateAspectRatio(bounding);
+            const boxHeight = BOX_WIDTH * aspectRatio;
+
+            const coordsById: Record<string, { x: number; y: number }> = {};
+            jacksonvilleVehicles.signal.value.forEach((vehicle) => {
+                coordsById[vehicle.id] = calculateXY({
+                    box: bounding,
+                    item: { lat: Number(vehicle.lat), lon: Number(vehicle.lon) },
+                    targetWidth: BOX_WIDTH,
+                    targetHeight: boxHeight,
+                });
+            });
+            return coordsById;
+        });
+
+        useVisibleTask$(({ track }) => {
+            track(() => jacksonvilleVehicles.signal.value);
+
+            const oldHeadingById = new Map<string, string>();
+            vehicleInfo.value.forEach((vehicle) => {
+                oldHeadingById.set(vehicle.id, vehicle.heading);
+            });
+            const newNormalizedPositionsById: Record<string, number> = {};
+            jacksonvilleVehicles.signal.value.forEach((vehicle) => {
+                const oldHeading = oldHeadingById.get(vehicle.id);
+                const amountToRotate = shortestAngle(
+                    normalizeTo360(Number(oldHeading)),
+                    normalizeTo360(Number(vehicle.heading))
+                );
+                newNormalizedPositionsById[vehicle.id] = normalizedPositionById.value[vehicle.id] + amountToRotate;
+            });
+            normalizedPositionById.value = newNormalizedPositionsById;
+            vehicleInfo.value = jacksonvilleVehicles.signal.value;
+        });
+
+        return (
             <Vehicles
                 coordsById={coordsById}
                 normalizedPositionById={normalizedPositionById}
                 vehicles={jacksonvilleVehicles.signal}
             />
-        </main>
-    );
-});
+        );
+    }
+);
 
 export const BOX_WIDTH = 320;
 export const STARTING_ROTATION = -120 as const;
@@ -373,7 +381,7 @@ export const VehicleLocationCard = component$(
                     </p>
                 </div>
                 <div class="coordinates">
-                  <MapPinIcon style={{"margin-left": "-10px"}} />
+                    <MapPinIcon style={{ "margin-left": "-10px" }} />
                     <div class="lat">
                         <p>{props.vehicle.lat.slice(0, 6)}</p>
                         <span>Latitude</span>

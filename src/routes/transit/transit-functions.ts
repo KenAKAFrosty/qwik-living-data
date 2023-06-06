@@ -2,8 +2,10 @@ import { server$ } from "@builder.io/qwik-city";
 import { TRANSIT_AGENCIES } from "./transit-routes";
 import { XMLParser } from "fast-xml-parser";
 
+export type Agencies = keyof typeof TRANSIT_AGENCIES;
+
 export const getVehiclesLocations = server$(async function (
-  agency: keyof typeof TRANSIT_AGENCIES
+  agency: Agencies
 ) {
   const routesOfVehicles = await Promise.all(
     TRANSIT_AGENCIES[agency].routeTags.map(async (tag) => {
@@ -15,7 +17,7 @@ export const getVehiclesLocations = server$(async function (
 });
 
 export async function getLiveVehiclesLocations<
-  AGENCY extends keyof typeof TRANSIT_AGENCIES
+  AGENCY extends Agencies
 >(
   agencyTitle: AGENCY,
   routeTag: (typeof TRANSIT_AGENCIES)[AGENCY]["routeTags"][number]
