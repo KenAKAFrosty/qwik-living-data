@@ -19,8 +19,9 @@ import Counter from "~/components/starter/counter/counter";
 import Hero from "~/components/starter/hero/hero";
 import Infobox from "~/components/starter/infobox/infobox";
 import { livingData } from "../living-data/living-data";
-import { getVehiclesLocations } from "../transit/transit-functions";
-import { Transit } from "../transit/transit";
+
+import { Transit } from "../components/living-data-examples/transit";
+import { getVehiclesLocations } from "~/components/living-data-examples/transit-functions";
 
 
 export const useWeatherLoader = routeLoader$((event) => getWeather.call(event));

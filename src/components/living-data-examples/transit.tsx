@@ -16,7 +16,7 @@ import {
 } from "~/geography-functions/geography-functions";
 import { livingData } from "~/living-data/living-data";
 import { getVehiclesLocations, type Agencies, type VehiclesLocations } from "./transit-functions";
-import { TRANSIT_AGENCIES } from "./transit-routes";
+import { TRANSIT_AGENCIES } from "./transit-data";
 
 
 export const BOX_WIDTH = 320 as const;

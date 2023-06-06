@@ -1,5 +1,5 @@
 import { server$ } from "@builder.io/qwik-city";
-import { TRANSIT_AGENCIES } from "./transit-routes";
+import { TRANSIT_AGENCIES } from "./transit-data";
 import { XMLParser } from "fast-xml-parser";
 
 export type Agencies = keyof typeof TRANSIT_AGENCIES;
