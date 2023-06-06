@@ -46,7 +46,7 @@ type LivingDataReturn<
             intervalStrategy?: IsClientStrategyOnly extends true
             ? "client"
             : "client" | "server";
-            connectionEagerness?: VisibleTaskStrategy;
+            // connectionEagerness?: VisibleTaskStrategy;
         }): {
             signal: Readonly<Signal<Awaited<ReturnType<UserFunction>>>>;
             pause: QRL<() => void>;
@@ -59,7 +59,7 @@ type LivingDataReturn<
             intervalStrategy?: IsClientStrategyOnly extends true
             ? "client"
             : "client" | "server";
-            connectionEagerness?: VisibleTaskStrategy;
+            // connectionEagerness?: VisibleTaskStrategy;
         }): {
             signal: Readonly<Signal<undefined | Awaited<ReturnType<UserFunction>>>>;
             pause: QRL<() => void>;
@@ -83,7 +83,7 @@ type LivingDataReturn<
             intervalStrategy?: IsClientStrategyOnly extends true
             ? "client"
             : "client" | "server";
-            connectionEagerness?: VisibleTaskStrategy;
+            // connectionEagerness?: VisibleTaskStrategy;
         }): {
             signal: Readonly<Signal<Awaited<ReturnType<UserFunction>>>>;
             pause: QRL<() => void>;
@@ -98,7 +98,7 @@ type LivingDataReturn<
             intervalStrategy?: IsClientStrategyOnly extends true
             ? "client"
             : "client" | "server";
-            connectionEagerness?: VisibleTaskStrategy;
+            // connectionEagerness?: VisibleTaskStrategy;
         }): {
             signal: Readonly<Signal<undefined | Awaited<ReturnType<UserFunction>>>>;
             pause: QRL<() => void>;
@@ -116,7 +116,7 @@ type LivingDataReturn<
             intervalStrategy?: IsClientStrategyOnly extends true
             ? "client"
             : "client" | "server";
-            connectionEagerness?: VisibleTaskStrategy;
+            // connectionEagerness?: VisibleTaskStrategy;
         }): {
             signal: Readonly<Signal<Awaited<ReturnType<UserFunction>>>>;
             pause: QRL<() => void>;
@@ -131,7 +131,7 @@ type LivingDataReturn<
             intervalStrategy?: IsClientStrategyOnly extends true
             ? "client"
             : "client" | "server";
-            connectionEagerness?: VisibleTaskStrategy;
+            // connectionEagerness?: VisibleTaskStrategy;
         }): {
             signal: Readonly<Signal<undefined | Awaited<ReturnType<UserFunction>>>>;
             pause: QRL<() => void>;
@@ -172,7 +172,7 @@ export function livingData<
         interval?: number | null;
         startingValue?: Awaited<ReturnType<UserFunction>>;
         intervalStrategy?: "client" | "server";
-        connectionEagerness?: VisibleTaskStrategy;
+        // connectionEagerness?: VisibleTaskStrategy;
     }) {
         const dataSignal = useSignal<undefined | Awaited<ReturnType<UserFunction>>>(
             options?.startingValue
@@ -315,9 +315,6 @@ export function livingData<
                 pause();
             });
             retryOnFailure(connectAndListen);
-        },
-        { 
-            strategy: options?.connectionEagerness
         });
 
 

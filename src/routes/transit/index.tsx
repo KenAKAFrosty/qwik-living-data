@@ -36,8 +36,8 @@ export default component$(() => {
 
     const loadedDowntownConnection = useLoadedDowntownConnection().value;
     const loadedDumbartonExpress = useLoadedDumbartonExpress().value;
-    // const loadedIIA = useLoadedIIA().value;
-    // const loadedCharlesRiver = useLoadedCharlesRiver().value;
+    const loadedIIA = useLoadedIIA().value;
+    const loadedCharlesRiver = useLoadedCharlesRiver().value;
 
     useStylesScoped$(`
         main { 
@@ -50,10 +50,10 @@ export default component$(() => {
     `);
     return (
         <main>
-            <AgencyVehicles agency="Downtown Connection" intialValues={loadedDowntownConnection} interval={3000} />
+            <AgencyVehicles agency="Downtown Connection" intialValues={loadedDowntownConnection} interval={3000}  />
             <AgencyVehicles agency="Dumbarton Express" intialValues={loadedDumbartonExpress} interval={3000} />
-            <AgencyVehicles agency="Indianapolis International Airport" intialValues={[]} interval={3000} />
-            <AgencyVehicles agency="EZRide - Charles River TMA" intialValues={[]} interval={3000} />
+            <AgencyVehicles agency="Indianapolis International Airport" intialValues={loadedIIA} interval={3000} />
+            <AgencyVehicles agency="EZRide - Charles River TMA" intialValues={loadedCharlesRiver} interval={3000} />
         </main>
     );
 });
@@ -63,8 +63,7 @@ export const AgencyVehicles = component$(
         const livingVehicles = useVehiclesLocations({
             initialArgs: [props.agency],
             startingValue: props.intialValues,
-            interval: props.interval ?? 10000,
-            connectionEagerness: props.loadImmediately ? "document-ready" : "intersection-observer",
+            interval: props.interval ?? 10000
         });
         const vehiclesCache = useSignal(props.intialValues);
         const _normalizedPositionById: Record<string, number> = {};
@@ -96,10 +95,6 @@ export const AgencyVehicles = component$(
 
         useVisibleTask$(({ track }) => {
             track(() => livingVehicles.signal.value);
-            if (vehiclesCache.value.length === 0) {
-                vehiclesCache.value = livingVehicles.signal.value;
-                return;
-            }
 
             const oldHeadingById = new Map<string, string>();
             vehiclesCache.value.forEach((vehicle) => {
