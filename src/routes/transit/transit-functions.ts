@@ -5,13 +5,21 @@ import { XMLParser } from "fast-xml-parser";
 export type Agencies = keyof typeof TRANSIT_AGENCIES;
 
 export const getVehiclesLocations = server$(async function (agency: Agencies) {
-    const routesOfVehicles = await Promise.all(
+    const ids = new Set<string>();
+    const uniqueVehicles: VehiclesLocations = [];
+    await Promise.all(
         TRANSIT_AGENCIES[agency].routeTags.map(async (tag) => {
-            return getLiveVehiclesLocations(agency, tag);
+            return getLiveVehiclesLocations(agency, tag).then(vehicles => { 
+                vehicles.forEach(vehicle => { 
+                    if (!ids.has(vehicle.id)) { 
+                        ids.add(vehicle.id);
+                        uniqueVehicles.push(vehicle);
+                    }
+                });
+            });
         })
     );
-    const vehicles = routesOfVehicles.flat();
-    return vehicles;
+    return uniqueVehicles;
 });
 
 export async function getLiveVehiclesLocations<AGENCY extends Agencies>(
@@ -53,7 +61,6 @@ export async function getLiveVehiclesLocations<AGENCY extends Agencies>(
     if (!Array.isArray(json.body.vehicle)) {
         json.body.vehicle = [json.body.vehicle];
     }
-    const ids = new Set<string>();
     return json.body.vehicle.map((vehicle) => ({
         id: vehicle["@_id"],
         lat: vehicle["@_lat"],
@@ -62,13 +69,8 @@ export async function getLiveVehiclesLocations<AGENCY extends Agencies>(
         predictable: vehicle["@_predictable"],
         heading: vehicle["@_heading"],
         speedKmHr: vehicle["@_speedKmHr"],
-    })).filter((vehicle) => {
-        if (ids.has(vehicle.id)) {
-            return false;
-        }
-        ids.add(vehicle.id);
-        return true;
-    });
+        route: routeTag,
+    }));
 }
 
-export type VehiclesLocations = Awaited<ReturnType<typeof getVehiclesLocations>>;
+export type VehiclesLocations = Awaited<ReturnType<typeof getLiveVehiclesLocations>>;
