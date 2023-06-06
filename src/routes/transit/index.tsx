@@ -24,21 +24,40 @@ export const useVehiclesLocations = livingData(getVehiclesLocations);
 export const useLoadedJacksonvilleLocations = routeLoader$((event) =>
     getVehiclesLocations.call(event, "Jacksonville Transportation Authority")
 );
+export const useLoadedUnitransLocations = routeLoader$((event) =>
+    getVehiclesLocations.call(event, "Unitrans ASUCD/City of Davis")
+);
+export const useLoadedRenoLocations = routeLoader$((event) =>
+    getVehiclesLocations.call(event, "RTC RIDE, Reno")
+);
+export const useLoadedTransportesLocations = routeLoader$((event) =>
+    getVehiclesLocations.call(event, "Transportes P. de Valdivia – P. Las Casas Ltda. (Línea N°3)")
+);
+export const useSocieteDeTransportDeLavalLocations = routeLoader$((event) =>
+    getVehiclesLocations.call(event, "Societe de transport de Laval")
+);
 
 export default component$(() => {
     const loadedJacksonville = useLoadedJacksonvilleLocations().value;
+    const loadedUnitrans = useLoadedUnitransLocations().value;
+    const loadedReno = useLoadedRenoLocations().value;
+    const loadedTransportes = useLoadedTransportesLocations().value;
+    const loadedSocieteDeTransportDeLaval = useSocieteDeTransportDeLavalLocations().value;
     useStylesScoped$(`
         main { 
           display: flex;
-          flex-direction: column;
-          align-items: center;
-          gap: 60px;
+          flex-wrap: wrap;
+          align-items: flex-start;
+          justify-content: center;
+          gap: 80px;
         }
     `)
     return (
         <main>
-            <AgencyVehicles agency="Unitrans ASUCD/City of Davis" intialValues={[]} />
-            <AgencyVehicles agency="Cape Cod Regional Transit Authority" intialValues={[]} />
+            <AgencyVehicles agency="Unitrans ASUCD/City of Davis" intialValues={loadedUnitrans} interval={3000} />
+            <AgencyVehicles agency="Transportes P. de Valdivia – P. Las Casas Ltda. (Línea N°3)" intialValues={loadedTransportes} />
+            <AgencyVehicles agency="Societe de transport de Laval" intialValues={loadedSocieteDeTransportDeLaval} interval={15000} />
+            <AgencyVehicles agency="RTC RIDE, Reno" intialValues={loadedReno} interval={3000} />
             <AgencyVehicles agency="Jacksonville Transportation Authority" intialValues={loadedJacksonville} />
         </main>
     );
@@ -52,10 +71,6 @@ export const AgencyVehicles = component$(
             interval: props.interval ?? 10000,
         });
         const vehiclesCache = useSignal(props.intialValues);
-        if (livingVehicles.signal.value.length === 0) {
-          return <></>
-        }
-
         const _normalizedPositionById: Record<string, number> = {};
         props.intialValues.forEach((vehicle) => {
             _normalizedPositionById[vehicle.id] = normalizeTo360(Number(vehicle.heading));
@@ -117,7 +132,11 @@ export const AgencyVehicles = component$(
             font-size: 18px;
             font-weight: normal;
           }
-        `)
+        `);
+
+        if (livingVehicles.signal.value.length === 0) {
+          return <></>
+        }
         return (
             <main>
                 <h2>{TRANSIT_AGENCIES[props.agency].region}</h2>
@@ -361,6 +380,9 @@ export const VehicleLocationCard = component$(
       .lat, .lon span { 
         font-size: 9px;
       }
+      .stopped { 
+        filter: grayscale(100%);
+      }
     `);
         const ref = useSignal<Element>();
         const heading = normalizeTo360(Number(props.vehicle.heading));
@@ -382,7 +404,10 @@ export const VehicleLocationCard = component$(
                 >
                     <div
                         key={props.vehicle.id + "-c"}
-                        class="rotator"
+                        class={{ 
+                          "rotator": true,
+                          "stopped": props.vehicle.speedKmHr === "0",
+                        }}
                         style={{
                             transform: `rotate(${props.rotation}deg)`,
                             "font-size": "20px",
@@ -392,8 +417,7 @@ export const VehicleLocationCard = component$(
                             height={70}
                             width={70}
                             style={{
-                                transform: `${heading > 180 ? "scaleX(-1)" : ""}`,
-                                filter: `${props.vehicle.speedKmHr === "0" ? "grayscale(100%)" : ""}`,
+                                transform: `${heading > 180 ? "scaleX(-1)" : ""}`
                             }}
                         />
                     </div>
@@ -442,17 +466,21 @@ export const Speedometer = component$((props: { speedKmHr: number }) => {
       text-align: center;
       margin: -10px 0px 30px 0px;
     }
+    .stopped { 
+      filter: grayscale(100%);
+    }
   `);
     return (
         <div>
+          <span class={{ 
+            "stopped": props.speedKmHr === 0,
+          }}>
             <SpeedometerIcon
                 height={80}
                 width={80}
                 fill="#006ce9"
-                style={{
-                    filter: `${props.speedKmHr === 0 ? "grayscale(100%)" : ""}`,
-                }}
             />
+            </span>
             <p>{isNaN(props.speedKmHr) === true ? "Unknown" : props.speedKmHr === 0 ? "Stopped" : `${props.speedKmHr} km/h`}</p>
         </div>
     );

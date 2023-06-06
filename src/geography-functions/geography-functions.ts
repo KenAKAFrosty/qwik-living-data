@@ -1,6 +1,13 @@
 export function findBoundingBox(
   coords: { lat: number; lon: number }[]
 ): BoundingBox {
+    if (coords.length === 0) { 
+        return {
+            southwest: { lat: 0, lon: 0 },
+            northeast: { lat: 0, lon: 0 },
+        }
+    }
+
   let minLat = coords[0].lat;
   let maxLat = coords[0].lat;
   let minLon = coords[0].lon;
