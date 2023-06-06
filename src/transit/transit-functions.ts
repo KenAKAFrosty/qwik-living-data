@@ -73,7 +73,7 @@ export async function getLiveVehiclesLocations<AGENCY extends Agencies>(
         predictable: vehicle["@_predictable"],
         heading: vehicle["@_heading"],
         speedKmHr: vehicle["@_speedKmHr"],
-        route: routeTag,
+        route: routeTag as string, //the massive union type here is not helpful at the call site and super cluttering
     }));
 }
 

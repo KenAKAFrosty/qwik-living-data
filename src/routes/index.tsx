@@ -19,6 +19,8 @@ import Counter from "~/components/starter/counter/counter";
 import Hero from "~/components/starter/hero/hero";
 import Infobox from "~/components/starter/infobox/infobox";
 import { livingData } from "../living-data/living-data";
+import { getVehiclesLocations } from "../transit/transit-functions";
+import { Transit } from "../transit/transit";
 
 
 export const useWeatherLoader = routeLoader$((event) => getWeather.call(event));
@@ -28,10 +30,16 @@ export const useChatMessagesLoader = routeLoader$((event) =>
 export const useOnlineUserCountLoader = routeLoader$((event) =>
   getOnlineUsersCount.call(event)
 );
+export const useLoadedPortland = routeLoader$((event) => getVehiclesLocations.call(event, "Portland Streetcar"));
+export const useLoadedDowntownConnection = routeLoader$((event) => getVehiclesLocations.call(event, "Downtown Connection"));
+
 export default component$(() => {
   const loadedWeather = useWeatherLoader();
   const loadedChatMessages = useChatMessagesLoader();
   const loadedOnlineUserCount = useOnlineUserCountLoader();
+  const loadedPortland = useLoadedPortland();
+  const loadedDowntownConnection = useLoadedDowntownConnection();
+
   return (
     <>
       <Iss />
@@ -39,6 +47,7 @@ export default component$(() => {
         startingMessages={loadedChatMessages.value}
         startingOnlineUserCount={loadedOnlineUserCount.value}
       />
+      <Transit loadedDowntownConnection={loadedDowntownConnection.value} loadedPortland={loadedPortland.value}  />
       <WeatherAndBikes startingWeather={loadedWeather.value} />
       <Hero />
 

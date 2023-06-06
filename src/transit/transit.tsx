@@ -7,7 +7,6 @@ import {
     useVisibleTask$,
     type Signal,
 } from "@builder.io/qwik";
-import { routeLoader$ } from "@builder.io/qwik-city";
 import { BusIcon, MapPinIcon, SpeedometerIcon } from "~/components/icons";
 import {
     calculateXY,
@@ -25,14 +24,12 @@ export const BOX_HEIGHT = 150 as const;
 export const STARTING_ROTATION = -120 as const;
 
 export const useVehiclesLocations = livingData(getVehiclesLocations);
-export const useLoadedPortland = routeLoader$((event) => getVehiclesLocations.call(event, "Portland Streetcar"));
-export const useLoadedDowntownConnection = routeLoader$((event) => getVehiclesLocations.call(event, "Downtown Connection"));
 
 
-export default component$(() => {
-
-    const loadedPortland = useLoadedPortland().value;
-    const loadedDowntownConnection = useLoadedDowntownConnection().value;
+export const Transit = component$((props: { 
+    loadedPortland: null | VehiclesLocations;
+    loadedDowntownConnection: null | VehiclesLocations;
+}) => {
 
     useStylesScoped$(`
         main { 
@@ -51,11 +48,11 @@ export default component$(() => {
     return (
         <main>
             <section>
-                <AgencyVehicles agency="Portland Streetcar" intialValues={loadedPortland} interval={5000} />
-                <AgencyVehicles agency="Downtown Connection" intialValues={loadedDowntownConnection} interval={5000} />
-                <AgencyVehicles agency="Glendale Beeline" intialValues={[]} interval={5000} />
+                <AgencyVehicles agency="Portland Streetcar" intialValues={props.loadedPortland} interval={5000} />
+                <AgencyVehicles agency="Downtown Connection" intialValues={props.loadedDowntownConnection} interval={5000} />
+                {/* <AgencyVehicles agency="Glendale Beeline" intialValues={[]} interval={5000} />
                 <AgencyVehicles agency="Jacksonville Transportation Authority" intialValues={[]} interval={5000} />
-                <AgencyVehicles agency="Societe de transport de Laval" intialValues={[]} interval={5000} />
+                <AgencyVehicles agency="Societe de transport de Laval" intialValues={[]} interval={5000} /> */}
             </section>
         </main>
     );
