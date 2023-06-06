@@ -227,7 +227,6 @@ export function livingData<
                 let stream = await streamPromise;
                 while (currentConnection.value === thisConnectionId) {
                     const current = await stream.next();
-                    console.log(current);
                     if (currentConnection.value !== thisConnectionId) {
                         break;
                     }
