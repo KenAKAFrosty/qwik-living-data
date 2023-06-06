@@ -21,28 +21,10 @@ import { type Agencies, getVehiclesLocations, type VehiclesLocations } from "./t
 import { TRANSIT_AGENCIES } from "./transit-routes";
 
 export const useVehiclesLocations = livingData(getVehiclesLocations);
-// export const useLoadedJacksonvilleLocations = routeLoader$((event) =>
-//     getVehiclesLocations.call(event, "Jacksonville Transportation Authority")
-// );
-export const useLoadedUnitransLocations = routeLoader$((event) =>
-    getVehiclesLocations.call(event, "Unitrans ASUCD/City of Davis")
-);
-// export const useLoadedRenoLocations = routeLoader$((event) =>
-//     getVehiclesLocations.call(event, "RTC RIDE, Reno")
-// );
-// export const useLoadedTransportesLocations = routeLoader$((event) =>
-//     getVehiclesLocations.call(event, "Transportes P. de Valdivia – P. Las Casas Ltda. (Línea N°3)")
-// );
-export const useSocieteDeTransportDeLavalLocations = routeLoader$((event) =>
-    getVehiclesLocations.call(event, "Societe de transport de Laval")
-);
+
 
 export default component$(() => {
-    // const loadedJacksonville = useLoadedJacksonvilleLocations().value;
-    const loadedUnitrans = useLoadedUnitransLocations().value;
-    // const loadedReno = useLoadedRenoLocations().value;
-    // const loadedTransportes = useLoadedTransportesLocations().value;
-    const loadedSocieteDeTransportDeLaval = useSocieteDeTransportDeLavalLocations().value;
+
     useStylesScoped$(`
         main { 
           display: flex;
@@ -54,19 +36,7 @@ export default component$(() => {
     `);
     return (
         <main>
-            <AgencyVehicles agency="Unitrans ASUCD/City of Davis" intialValues={loadedUnitrans} interval={3000} />
-            <AgencyVehicles
-                agency="Societe de transport de Laval"
-                intialValues={loadedSocieteDeTransportDeLaval}
-                interval={15000}
-            />
-            <AgencyVehicles
-                agency="Transportes P. de Valdivia – P. Las Casas Ltda. (Línea N°3)"
-                intialValues={[]}
-                loadWhenVisible={false}
-            />
-            <AgencyVehicles agency="RTC RIDE, Reno" intialValues={[]} interval={3000} loadWhenVisible={false} />
-            <AgencyVehicles agency="Jacksonville Transportation Authority" intialValues={[]} loadWhenVisible={false} />
+            {/* <AgencyVehicles agency="Unitrans ASUCD/City of Davis" intialValues={loadedUnitrans} interval={3000} /> */}
         </main>
     );
 });
