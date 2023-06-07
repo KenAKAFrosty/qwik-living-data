@@ -295,6 +295,7 @@ export const Vehicles = component$(
 
                         return (
                             <span
+                                role="presentation"
                                 key={vehicle.id + "-dot"}
                                 class={{
                                     "vehicle-dot": true,
