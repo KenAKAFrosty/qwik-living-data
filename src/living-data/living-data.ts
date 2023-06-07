@@ -303,7 +303,6 @@ export function livingData<
                 return;
             }
             const thisElement = event.detail.target as HTMLElement;
-            console.log(thisElement);
             let initial = true; //this is fired on qvisible event, so we're already visible
             //the other useVisibleTask$ will handle the initial call. No need to refresh right away.
             const observer = new IntersectionObserver((entries) => { 
