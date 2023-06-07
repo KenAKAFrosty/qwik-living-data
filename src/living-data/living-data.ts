@@ -316,7 +316,7 @@ export function livingData<
                         refresh();
                     } else { 
                         if (thisElement.parentNode) { 
-                            //If it's no longer in the dom, that's usually do to alternate return paths in the component
+                            //If it's no longer in the dom, that's usually due to alternate return paths in the component
                             //that will return different JSX nodes. There's a good chance those alternate paths depend
                             //on the very updates that are expected from livingData. So, we don't want to pause.
                             //I don't think qvisible will fire again, nor is there a good way to know which element takes its place, 
