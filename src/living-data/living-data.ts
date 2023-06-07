@@ -204,6 +204,7 @@ export function livingData<
         const retryCount = useSignal(0);
         const retryResetTimeout = useSignal(-1);
         const abortController = useSignal<NoSerialize<AbortController> | null>(null);
+        const isVisible = useSignal(true);
 
         const connectAndListen = $(
             async (adjustments?: { skipInitialCall?: boolean }) => {
@@ -277,6 +278,9 @@ export function livingData<
         });
 
         const refresh = $(async () => {
+            if (isVisible.value === false) {
+                return 
+            }
             retryOnFailure(connectAndListen);
             if (clientOnly) { shouldClientSidePoll.value = true; }
         });
@@ -293,28 +297,40 @@ export function livingData<
             if (clientOnly) { shouldClientSidePoll.value = true; }
         });
 
-
-        
-
         useOn('qvisible', $((event: any) => { 
+            isVisible.value = true;
+            if (!event.detail) { 
+                return;
+            }
             const thisElement = event.detail.target as HTMLElement;
+            console.log(thisElement);
             let initial = true; //this is fired on qvisible event, so we're already visible
             //the other useVisibleTask$ will handle the initial call. No need to refresh right away.
             const observer = new IntersectionObserver((entries) => { 
                 entries.forEach(entry => { 
                     if (entry.isIntersecting) { 
+                        isVisible.value = true;
                         if (initial) {
                             initial = false;
                             return;
                         }
                         refresh();
                     } else { 
-                        pause();
+                        if (thisElement.parentNode) { 
+                            //If it's no longer in the dom, that's usually do to alternate return paths in the component
+                            //that will return different JSX nodes. There's a good chance those alternate paths depend
+                            //on the very updates that are expected from livingData. So, we don't want to pause.
+                            //I don't think qvisible will fire again, nor is there a good way to know which element takes its place, 
+                            //but since this is just a perf improvement/nice-to-have anyway, better to just leave it.
+                            isVisible.value = false;
+                            pause();
+                        }
                     }
                 })
             }, {threshold: 0});
             observer.observe(thisElement);
         }));
+
         useVisibleTask$(({ cleanup }) => {
             function saveResources() {
                 if (document.visibilityState === "hidden") {
