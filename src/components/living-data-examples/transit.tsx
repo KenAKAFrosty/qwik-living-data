@@ -13,7 +13,7 @@ import {
     degreesToCompass,
     findBoundingBox,
     normalizeTo360
-} from "~/geography-functions/geography-functions";
+} from "~/components/living-data-examples/geography-functions";
 import { livingData } from "~/living-data/living-data";
 import { getVehiclesLocations, type Agencies, type VehiclesLocations } from "./transit-functions";
 import { TRANSIT_AGENCIES } from "./transit-data";
