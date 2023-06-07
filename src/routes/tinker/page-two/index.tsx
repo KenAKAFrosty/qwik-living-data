@@ -1,5 +1,5 @@
 import { component$, useVisibleTask$ } from "@builder.io/qwik";
-import { listenToAblyStream } from "..";
+import { listenToAblyStream, sendAblyMessage } from "..";
 import { livingData } from "~/living-data/living-data";
 
 
@@ -11,7 +11,7 @@ export default component$(() => {
         initialArgs: ["getting-started"]
     });
     ably.signal.value;
-
+    console.log(ably.signal.value);
     useVisibleTask$(() => {
         // listenToAblyStream("getting-started").then(async (stream) => {
         //     for await (const message of stream) {
@@ -21,8 +21,8 @@ export default component$(() => {
     })
     return <main>
         Heyo!
-        <button onClick$={() => { 
-
+        <button onClick$={async () => { 
+            await sendAblyMessage("Hey there!")
         }}>
             hmmm
         </button>

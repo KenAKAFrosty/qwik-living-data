@@ -1,5 +1,5 @@
 import { $, component$, useSignal, useStylesScoped$, useTask$, useVisibleTask$ } from "@builder.io/qwik";
-import { type RequestEventBase, server$ } from "@builder.io/qwik-city";
+import {server$ } from "@builder.io/qwik-city";
 import { sql, type Selectable } from "kysely";
 import { getDb } from "~/database/planetscale";
 import type { DB } from "~/database/planetscale-types";
@@ -7,6 +7,7 @@ import { livingData } from "~/living-data/living-data";
 import { useUsername } from "~/routes/layout";
 import { SimpleMultipleUsersIcon, SimpleUserIcon } from "../icons";
 import styles from "./chat.css?inline"
+import { getIp } from "~/users/functions";
 
 //NOTE: If this were a proper production app, then it would be advised to use an 
 //in-memory database (Redis, memcached, etc.) given how frequently this is polling (only 180ms between calls - and PER visitor!)
@@ -155,12 +156,6 @@ export const heartbeat = server$(async function() {
     const ip = getIp(this);
     await  getDb(this).updateTable("users").set({ last_active:  new Date() }).where("ip", "=", ip).execute();
  })
-
-
-export function getIp(event: RequestEventBase) { 
-    const headers = event.request.headers;
-    return event.url.hostname === "localhost" ? "dev" : headers.get("x-forwarded-for") || headers.get("x-real-ip") || headers.get("x-vercel-proxied-for");
-}
 
 export const sendChatMessage = server$(async function(message: string) {
     if (message.length > 300) { 

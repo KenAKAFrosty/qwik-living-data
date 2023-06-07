@@ -432,7 +432,7 @@ export const dataFeeder = server$(async function* (options: {
                     ) {
                     const current = await stream.next();
                     if (disconnectRequestsByConnectionId.has(options.connectionId)) { 
-                        console.log('got disconnect signal')
+                        console.log('got disconnect signal', options.connectionId)
                         return;
                     }
                     if (current.done === true) {
