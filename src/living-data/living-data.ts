@@ -223,6 +223,7 @@ export function livingData<
                     interval: interval,
                     skipInitialCall: adjustments?.skipInitialCall,
                 });
+
                 let stream = await streamPromise;
                 while (currentConnection.value === thisConnectionId) {
                     const current = await stream.next();
@@ -244,7 +245,7 @@ export function livingData<
                             console.warn("Too many retries in a short period. Exiting.");
                             break
                         }
-                        stream = await dataFeeder({
+                        stream = await dataFeeder(abortController.value!.signal, {
                             qrlId,
                             connectionId: thisConnectionId,
                             invocationId: invocationId,
@@ -271,6 +272,7 @@ export function livingData<
             abortController.value?.abort("Living Data: Intentional Disconnect");
             if (!clientOnly) {
                 currentConnection.value = -1;
+                await disconnectConnectionInstances(connections.value);
             }
         });
 
@@ -333,7 +335,6 @@ export function livingData<
                 window.removeEventListener("focus", refresh);
                 //focus and visibility change to visible will likely overlap.
                 //would be nice to account for that and only refresh once
-
                 pause();
             });
             retryOnFailure(connectAndListen);
@@ -379,6 +380,14 @@ export function livingData<
 
     return useLivingData as LivingDataReturn<UserFunction, IsClientStrategyOnly>;
 }
+
+export const disconnectConnectionInstances = server$(
+    (connectionIds: number[]) => {
+        connectionIds.forEach((connectionId) => {
+            disconnectRequestsByConnectionId.add(connectionId);
+        });
+    }
+);
 
 export const DEFAULT_INTERVAL = 10000;
 export const dataFeeder = server$(async function* (options: {
