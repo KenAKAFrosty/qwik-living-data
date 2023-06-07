@@ -498,7 +498,7 @@ export async function retryOnFailure<Func extends () => any>(
         try {
             return await func();
         } catch (e: any) {
-            if (e === "Living Data: Intentional Disconnect") { 
+            if (e === "Living Data: Intentional Disconnect" || e === "DOMException: The user aborted a request.") { 
                 return { __living_data_end: -1} as const
             }
             console.warn("Living Data: connection lost:", e);
