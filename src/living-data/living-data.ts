@@ -1,9 +1,12 @@
 import {
     $,
+    useOn,
     useSignal,
     useVisibleTask$,
     type QRL,
-    type Signal
+    type Signal,
+    noSerialize,
+    type NoSerialize
 } from "@builder.io/qwik";
 import { server$ } from "@builder.io/qwik-city";
 import areEqual from "fast-deep-equal";
@@ -200,20 +203,19 @@ export function livingData<
         const RESET_DELAY = 5000;
         const retryCount = useSignal(0);
         const retryResetTimeout = useSignal(-1);
+        const abortController = useSignal<NoSerialize<AbortController> | null>(null);
 
         const connectAndListen = $(
             async (adjustments?: { skipInitialCall?: boolean }) => {
                 const thisConnectionId = Math.random();
                 currentConnection.value = thisConnectionId;
-                let disconnectPromise;
-                if (!clientOnly) {
-                    disconnectPromise = disconnectConnectionInstances(
-                        connections.value
-                    );
+                if (abortController.value) {
+                    abortController.value.abort("Living Data: Intentional Disconnect");
                 }
                 connections.value = [...connections.value, thisConnectionId];
                 const interval = clientOnly ? null : currentInterval.value;
-                const streamPromise = dataFeeder({
+                abortController.value = noSerialize(new AbortController());
+                const streamPromise = dataFeeder(abortController.value!.signal, {
                     qrlId,
                     connectionId: thisConnectionId,
                     invocationId: invocationId,
@@ -221,9 +223,6 @@ export function livingData<
                     interval: interval,
                     skipInitialCall: adjustments?.skipInitialCall,
                 });
-                if (!clientOnly) {
-                    await disconnectPromise;
-                }
                 let stream = await streamPromise;
                 while (currentConnection.value === thisConnectionId) {
                     const current = await stream.next();
@@ -269,9 +268,9 @@ export function livingData<
 
         const pause = $(async () => {
             shouldClientSidePoll.value = false;
+            abortController.value?.abort("Living Data: Intentional Disconnect");
             if (!clientOnly) {
                 currentConnection.value = -1;
-                await disconnectConnectionInstances(connections.value);
             }
         });
 
@@ -292,6 +291,28 @@ export function livingData<
             if (clientOnly) { shouldClientSidePoll.value = true; }
         });
 
+
+        
+
+        useOn('qvisible', $((event: any) => { 
+            const thisElement = event.detail.target as HTMLElement;
+            let initial = true; //this is fired on qvisible event, so we're already visible
+            //the other useVisibleTask$ will handle the initial call. No need to refresh right away.
+            const observer = new IntersectionObserver((entries) => { 
+                entries.forEach(entry => { 
+                    if (entry.isIntersecting) { 
+                        if (initial) {
+                            initial = false;
+                            return;
+                        }
+                        refresh();
+                    } else { 
+                        pause();
+                    }
+                })
+            }, {threshold: 0});
+            observer.observe(thisElement);
+        }));
         useVisibleTask$(({ cleanup }) => {
             function saveResources() {
                 if (document.visibilityState === "hidden") {
@@ -358,14 +379,6 @@ export function livingData<
 
     return useLivingData as LivingDataReturn<UserFunction, IsClientStrategyOnly>;
 }
-
-export const disconnectConnectionInstances = server$(
-    (connectionIds: number[]) => {
-        connectionIds.forEach((connectionId) => {
-            disconnectRequestsByConnectionId.add(connectionId);
-        });
-    }
-);
 
 export const DEFAULT_INTERVAL = 10000;
 export const dataFeeder = server$(async function* (options: {
@@ -451,7 +464,7 @@ export const dataFeeder = server$(async function* (options: {
     let lastResponse;
     while (disconnectRequestsByConnectionId.has(options.connectionId) === false) {
         if (Date.now() - lastCompleted >= interval) {
-            const thisResponse = await func.call(this, ...options.args);
+            const thisResponse: any = await func.call(this, ...options.args);
             if (!areEqual(thisResponse, lastResponse)) {
                 lastResponse = thisResponse;
                 yield thisResponse;
@@ -469,13 +482,13 @@ export function wait(ms: number) {
 
 export async function retryOnFailure<Func extends () => any>(
     func: Func
-): Promise<ReturnType<Func>> {
+): Promise<ReturnType<Func> | { __living_data_end: -1}> {
     const BASE_PAUSE_TIME = 100;
     const PAUSE_TIME_DELAY_MODIFIER = 500;
     const MAX_ATTEMPTS = 7;
 
     let attempts = 0;
-    async function retry(func: Func): Promise<ReturnType<Func>> {
+    async function retry(func: Func): Promise<ReturnType<Func> | { __living_data_end: -1}> {
         const pauseTime =
             BASE_PAUSE_TIME + attempts * (attempts / 2) * PAUSE_TIME_DELAY_MODIFIER;
         attempts++;
@@ -484,8 +497,11 @@ export async function retryOnFailure<Func extends () => any>(
         }
         try {
             return await func();
-        } catch (e) {
-            console.warn("Living data connection lost:", e);
+        } catch (e: any) {
+            if (e === "Living Data: Intentional Disconnect") { 
+                return { __living_data_end: -1} as const
+            }
+            console.warn("Living Data: connection lost:", e);
             await wait(pauseTime);
             console.warn(`Waited ${pauseTime} ms. Retrying...`);
             return await retry(func);
