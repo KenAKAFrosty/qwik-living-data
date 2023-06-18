@@ -19,7 +19,7 @@ const disconnectRequestsByConnectionId = new Set<number>();
 
 
 export type VisibleTaskStrategy = NonNullable<NonNullable<Parameters<typeof useVisibleTask$>[1]>["strategy"]>;
-
+export type IsConnectingDueTo = Readonly<Signal<null | "initial load" | "refresh" | "reconnect" | "newInterval" | "newArguments">>
 
 export type HasMandatoryParameters<T extends (...args: any[]) => any> =
     Parameters<T> extends [infer P, ...infer Rest]
@@ -42,6 +42,7 @@ type LivingDataReturn<
             pause: QRL<() => void>;
             refresh: QRL<() => void>;
             newInterval: QRL<(interval: number | null) => void>;
+            isConnectingDueTo: Readonly<Signal<null | "initial load" | "refresh" | "reconnect" | "newInterval">>
         };
         (options: {
             startingValue: Awaited<ReturnType<UserFunction>>;
@@ -55,6 +56,7 @@ type LivingDataReturn<
             pause: QRL<() => void>;
             refresh: QRL<() => void>;
             newInterval: QRL<(interval: number | null) => void>;
+            isConnectingDueTo: Readonly<Signal<null | "initial load" | "refresh" | "reconnect" | "newInterval">>
         };
         (options: {
             interval?: Awaited<ReturnType<UserFunction>> extends AsyncGenerator ? null : number | null;
@@ -68,6 +70,7 @@ type LivingDataReturn<
             pause: QRL<() => void>;
             refresh: QRL<() => void>;
             newInterval: QRL<(interval: number | null) => void>;
+            isConnectingDueTo: Readonly<Signal<null | "initial load" | "refresh" | "reconnect" | "newInterval">>
         };
     }
     : HasMandatoryParameters<UserFunction> extends false //Has arguments but none are mandatory
@@ -78,6 +81,7 @@ type LivingDataReturn<
             refresh: QRL<() => void>;
             newArguments: QRL<(...args: Parameters<UserFunction>) => void>;
             newInterval: QRL<(interval: number | null) => void>;
+            isConnectingDueTo: Readonly<Signal<null | "initial load" | "refresh" | "reconnect" | "newInterval" | "newArguments">>
         };
         (options: {
             initialArgs?: Parameters<UserFunction>;
@@ -93,6 +97,7 @@ type LivingDataReturn<
             refresh: QRL<() => void>;
             newArguments: QRL<(...args: Parameters<UserFunction>) => void>;
             newInterval: QRL<(interval: number | null) => void>;
+            isConnectingDueTo: Readonly<Signal<null | "initial load" | "refresh" | "reconnect" | "newInterval" | "newArguments">>
         };
         (options: {
             initialArgs?: Parameters<UserFunction>;
@@ -108,6 +113,7 @@ type LivingDataReturn<
             refresh: QRL<() => void>;
             newArguments: QRL<(...args: Parameters<UserFunction>) => void>;
             newInterval: QRL<(interval: number | null) => void>;
+            isConnectingDueTo: Readonly<Signal<null | "initial load" | "refresh" | "reconnect" | "newInterval" | "newArguments">>
         };
     }
     : {
@@ -126,6 +132,7 @@ type LivingDataReturn<
             refresh: QRL<() => void>;
             newArguments: QRL<(...args: Parameters<UserFunction>) => void>;
             newInterval: QRL<(interval: number | null) => void>;
+            isConnectingDueTo: Readonly<Signal<null | "initial load" | "refresh" | "reconnect" | "newInterval" | "newArguments">>
         };
         (options: {
             initialArgs: Parameters<UserFunction>;
@@ -141,6 +148,7 @@ type LivingDataReturn<
             refresh: QRL<() => void>;
             newArguments: QRL<(...args: Parameters<UserFunction>) => void>;
             newInterval: QRL<(interval: number | null) => void>;
+            isConnectingDueTo: Readonly<Signal<null | "initial load" | "refresh" | "reconnect" | "newInterval" | "newArguments">>
         };
     };
 
@@ -205,6 +213,7 @@ export function livingData<
         const retryResetTimeout = useSignal(-1);
         const abortController = useSignal<NoSerialize<AbortController> | null>(null);
         const isVisible = useSignal(true);
+        const isConnectingDueTo = useSignal<null | "initial load" | "refresh" | "reconnect" | "newInterval" | "newArguments">("initial load");
 
         const connectAndListen = $(
             async (adjustments?: { skipInitialCall?: boolean }) => {
@@ -228,6 +237,9 @@ export function livingData<
                 let stream = await streamPromise;
                 while (currentConnection.value === thisConnectionId) {
                     const current = await stream.next();
+                    if (isConnectingDueTo.value !== null) {
+                        isConnectingDueTo.value = null;
+                    }
                     if (currentConnection.value !== thisConnectionId) {
                         break;
                     }
@@ -241,9 +253,11 @@ export function livingData<
                     if (current.done === true) {
                         //If we were supposed to be truly done, we would have just broken above. 
                         //This is likely due to getting evicted on the server end, so we need to reconnect.
+                        isConnectingDueTo.value = "reconnect";
                         retryCount.value = retryCount.value + 1;
                         if (retryCount.value > MAX_RETRIES) {
                             console.warn("Too many retries in a short period. Exiting.");
+                            isConnectingDueTo.value = null;
                             break
                         }
                         stream = await dataFeeder(abortController.value!.signal, {
@@ -279,54 +293,58 @@ export function livingData<
 
         const refresh = $(async () => {
             if (isVisible.value === false) {
-                return 
+                return
             }
-            retryOnFailure(connectAndListen);
+            isConnectingDueTo.value = "refresh";
+            retryOnFailure(connectAndListen, isConnectingDueTo);
             if (clientOnly) { shouldClientSidePoll.value = true; }
         });
 
         const newArguments = $(async (...args: Parameters<UserFunction>) => {
             currentArgs.value = args;
-            retryOnFailure(connectAndListen);
+            isConnectingDueTo.value = "newArguments";
+            retryOnFailure(connectAndListen, isConnectingDueTo);
             if (clientOnly) { shouldClientSidePoll.value = true; }
         });
 
         const newInterval = $(async (interval?: number | null) => {
             currentInterval.value = interval;
-            retryOnFailure(() => connectAndListen({ skipInitialCall: true }));
+            isConnectingDueTo.value = "newInterval";
+            retryOnFailure(() => connectAndListen({ skipInitialCall: true }), isConnectingDueTo);
             if (clientOnly) { shouldClientSidePoll.value = true; }
         });
 
-        useOn('qvisible', $((event: any) => { 
+        useOn('qvisible', $((event: any) => {
             isVisible.value = true;
-            if (!event.detail) { 
+            if (!event.detail) {
                 return;
             }
             const thisElement = event.detail.target as HTMLElement;
             let initial = true; //this is fired on qvisible event, so we're already visible
             //the other useVisibleTask$ will handle the initial call. No need to refresh right away.
-            const observer = new IntersectionObserver((entries) => { 
-                entries.forEach(entry => { 
-                    if (entry.isIntersecting) { 
+            const observer = new IntersectionObserver((entries) => {
+                entries.forEach(entry => {
+                    if (entry.isIntersecting) {
                         isVisible.value = true;
                         if (initial) {
                             initial = false;
                             return;
                         }
                         refresh();
-                    } else { 
-                        if (thisElement.parentNode) { 
-                            //If it's no longer in the dom, that's usually due to alternate return paths in the component
-                            //that will return different JSX nodes. There's a good chance those alternate paths depend
-                            //on the very updates that are expected from livingData. So, we don't want to pause.
-                            //I don't think qvisible will fire again, nor is there a good way to know which element takes its place, 
-                            //but since this is just a perf improvement/nice-to-have anyway, better to just leave it.
+                    } else {
+                        //If it's no longer in the dom, that's usually due to alternate return paths in the component
+                        //that will return different JSX nodes. There's a good chance those alternate paths depend
+                        //on the very updates that are expected from livingData. So, we don't want to pause.
+                        //I don't think qvisible will fire again, nor is there a good way to know which element takes its place, 
+                        //but since this is just a perf improvement/nice-to-have anyway, better to just leave it.
+                        const stillInDom = Boolean(thisElement.parentNode);
+                        if (stillInDom) {
                             isVisible.value = false;
                             pause();
                         }
                     }
                 })
-            }, {threshold: 0});
+            }, { threshold: 0 });
             observer.observe(thisElement);
         }));
 
@@ -352,7 +370,7 @@ export function livingData<
                 //would be nice to account for that and only refresh once
                 pause();
             });
-            retryOnFailure(connectAndListen);
+            retryOnFailure(connectAndListen, isConnectingDueTo);
         });
 
 
@@ -390,7 +408,7 @@ export function livingData<
             clientSidePolling();
         });
 
-        return { signal: dataSignal, pause, refresh, newArguments, newInterval };
+        return { signal: dataSignal, pause, refresh, newArguments, newInterval, isConnectingDueTo };
     }
 
     return useLivingData as LivingDataReturn<UserFunction, IsClientStrategyOnly>;
@@ -426,12 +444,12 @@ export const dataFeeder = server$(async function* (options: {
             /* eslint-disable-next-line */
             async function pipeValuesOver() {
                 while (
-                    isDone === false 
-                    &&  
+                    isDone === false
+                    &&
                     disconnectRequestsByConnectionId.has(options.connectionId) === false
-                    ) {
+                ) {
                     const current = await stream.next();
-                    if (disconnectRequestsByConnectionId.has(options.connectionId)) { 
+                    if (disconnectRequestsByConnectionId.has(options.connectionId)) {
                         console.log('got disconnect signal', options.connectionId)
                         return;
                     }
@@ -505,28 +523,32 @@ export function wait(ms: number) {
 }
 
 export async function retryOnFailure<Func extends () => any>(
-    func: Func
-): Promise<ReturnType<Func> | { __living_data_end: -1}> {
+    func: Func,
+    isConnectingDueTo: Signal<null | "initial load" | "refresh" | "reconnect" | "newInterval" | "newArguments">
+): Promise<ReturnType<Func> | { __living_data_end: -1 }> {
     const BASE_PAUSE_TIME = 100;
     const PAUSE_TIME_DELAY_MODIFIER = 500;
+    const MAX_RANDOM_EXTRA_PAUSE_TIME = 100;
     const MAX_ATTEMPTS = 7;
-
     let attempts = 0;
-    async function retry(func: Func): Promise<ReturnType<Func> | { __living_data_end: -1}> {
+    async function retry(func: Func): Promise<ReturnType<Func> | { __living_data_end: -1 }> {
         const pauseTime =
-            BASE_PAUSE_TIME + attempts * (attempts / 2) * PAUSE_TIME_DELAY_MODIFIER;
+            BASE_PAUSE_TIME + attempts * (attempts / 2) * PAUSE_TIME_DELAY_MODIFIER + (Math.random() * MAX_RANDOM_EXTRA_PAUSE_TIME);
         attempts++;
+        if (attempts > 1) {
+            isConnectingDueTo.value = "reconnect"
+        }
         if (attempts > MAX_ATTEMPTS) {
             throw new Error("Max retry attempts reached");
         }
         try {
             return await func();
         } catch (e: any) {
-            if (e === "Living Data: Intentional Disconnect" 
+            if (e === "Living Data: Intentional Disconnect"
                 || e === "DOMException: The user aborted a request."
                 || e.name === "AbortError"
-            ) { 
-                return { __living_data_end: -1} as const
+            ) {
+                return { __living_data_end: -1 } as const
             }
             console.warn("Living Data: connection lost:", e);
             await wait(pauseTime);
